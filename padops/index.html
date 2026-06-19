@@ -743,12 +743,12 @@ body.split-mode.detail-open main { width: 58%; }
 const CURRENT_SCHEMA_VERSION = 1;
 const LS_KEY = 'specialist-turnover-state';
 const COLUMNS = [
-  { id: 'needs-planning', label: 'Needs Planning' },
   { id: 'in-work',  label: 'In Work' },
   { id: 'in-queue', label: 'In Queue' },
   { id: 'hold',     label: 'On Hold' },
   { id: 'awaiting', label: 'Awaiting' },
   { id: 'complete', label: 'Complete' },
+  { id: 'needs-planning', label: 'Needs Planning' },
 ];
 const COL_LABEL = Object.fromEntries(COLUMNS.map(c => [c.id, c.label]));
 const PRIORITIES = ['low', 'normal', 'high', 'critical'];
