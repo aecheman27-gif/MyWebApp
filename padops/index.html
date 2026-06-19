@@ -90,6 +90,30 @@ html[data-theme="light"] {
   --col-queue: #8a8fae;
 }
 
+/* Accent color schemes — re-tint the primary neon accent + cyan-derived tokens.
+   (Cyan is the default and needs no override.) */
+html[data-accent="green"] {
+  --neon-cyan: #00ff94; --text-neon: #00ff94;
+  --border-default: rgba(0,255,148,0.08); --border-active: rgba(0,255,148,0.35); --border-glow: rgba(0,255,148,0.6);
+  --glow-cyan-sm: 0 0 8px rgba(0,255,148,0.4); --glow-cyan-md: 0 0 20px rgba(0,255,148,0.25), 0 0 40px rgba(0,255,148,0.1);
+}
+html[data-accent="amber"] {
+  --neon-cyan: #ffaa00; --text-neon: #ffaa00;
+  --border-default: rgba(255,170,0,0.1); --border-active: rgba(255,170,0,0.4); --border-glow: rgba(255,170,0,0.6);
+  --glow-cyan-sm: 0 0 8px rgba(255,170,0,0.4); --glow-cyan-md: 0 0 20px rgba(255,170,0,0.25), 0 0 40px rgba(255,170,0,0.1);
+}
+html[data-accent="magenta"] {
+  --neon-cyan: #ff006e; --text-neon: #ff4d94;
+  --border-default: rgba(255,0,110,0.1); --border-active: rgba(255,0,110,0.4); --border-glow: rgba(255,0,110,0.6);
+  --glow-cyan-sm: 0 0 8px rgba(255,0,110,0.4); --glow-cyan-md: 0 0 20px rgba(255,0,110,0.25), 0 0 40px rgba(255,0,110,0.1);
+}
+html[data-accent="violet"] {
+  --neon-cyan: #9b59ff; --text-neon: #b388ff;
+  --border-default: rgba(155,89,255,0.1); --border-active: rgba(155,89,255,0.4); --border-glow: rgba(155,89,255,0.6);
+  --glow-cyan-sm: 0 0 8px rgba(155,89,255,0.4); --glow-cyan-md: 0 0 20px rgba(155,89,255,0.25), 0 0 40px rgba(155,89,255,0.1);
+}
+.color-swatch.sel { outline: 2px solid var(--text-primary); outline-offset: 1px; }
+
 /* ============================================================================
    2. RESET / BASE
    ========================================================================== */
@@ -699,6 +723,10 @@ body.split-mode.detail-open main { width: 58%; }
         <button data-route="weekly">Weekly Summary</button>
         <button data-route="settings">Settings</button>
       </nav>
+      <div style="position:relative">
+        <button class="icon-btn" id="themeBtn" title="Theme & color scheme" aria-label="Theme and color scheme">🎨</button>
+        <div class="dropdown" id="themeDropdown" style="width:220px"></div>
+      </div>
       <button class="btn sm ghost" id="notepadBtn" title="Shift Notes (P)">📓 Shift Notes</button>
       <span class="spacer"></span>
       <span class="offline-badge">⚠ OFFLINE</span>
@@ -856,7 +884,7 @@ function defaultSettings() {
   return {
     team: { day: ['Ryan','Grayson'], night: ['Justin','Terrence'] },
     shiftStartDay: '06:00', shiftStartNight: '18:00',
-    anthropicApiKey: null, theme: 'system', activeUserId: null,
+    anthropicApiKey: null, theme: 'system', accent: 'cyan', activeUserId: null,
   };
 }
 function defaultCustomFields() {
@@ -1332,6 +1360,24 @@ function applyTheme() {
   const t = State.settings.theme;
   if (t === 'system') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.setAttribute('data-theme', t);
+  const a = State.settings.accent || 'cyan';
+  if (a === 'cyan') document.documentElement.removeAttribute('data-accent');
+  else document.documentElement.setAttribute('data-accent', a);
+}
+function renderThemeDropdown() {
+  const dd = $('#themeDropdown'); if (!dd) return;
+  const modes = [['system','System'],['dark','Dark'],['light','Light']];
+  const accents = [['cyan','#00f5ff','Cyan'],['green','#00ff94','Green'],['amber','#ffaa00','Amber'],['magenta','#ff006e','Magenta'],['violet','#9b59ff','Violet']];
+  const curAccent = State.settings.accent || 'cyan';
+  dd.innerHTML = `<div class="dropdown-head"><h3>Theme &amp; Color Scheme</h3></div>
+    <div style="padding:10px 12px">
+      <div class="filter-label" style="margin-bottom:6px">Mode</div>
+      <div class="seg" style="width:100%">${modes.map(([v,l])=>`<button data-mode="${v}" class="${State.settings.theme===v?'active':''}" style="flex:1">${l}</button>`).join('')}</div>
+      <div class="filter-label" style="margin:12px 0 6px">Accent</div>
+      <div class="color-grid">${accents.map(([v,c,l])=>`<div class="color-swatch ${curAccent===v?'sel':''}" data-accent="${v}" title="${l}" style="background:${c}"></div>`).join('')}</div>
+    </div>`;
+  $$('[data-mode]', dd).forEach(b=>b.onclick=()=>{ State.settings.theme=b.dataset.mode; commit('settings'); applyTheme(); renderThemeDropdown(); if(currentRoute==='settings') renderSettings(); });
+  $$('[data-accent]', dd).forEach(s=>s.onclick=()=>{ State.settings.accent=s.dataset.accent; commit('settings'); applyTheme(); renderThemeDropdown(); });
 }
 
 /* ============================================================================
@@ -3117,11 +3163,13 @@ function wireGlobalChrome() {
   $('#notepadBtn').onclick = openNotepad;
   $('#syncBtn').onclick = ()=>{ State=loadAndMigrate(); rerenderAll(); updateSyncLabel(); toast('Synced','success'); };
   $('#bellBtn').onclick = (e)=>{ e.stopPropagation(); const dd=$('#notifDropdown'); dd.classList.toggle('show'); if(dd.classList.contains('show')) renderNotifDropdown(); };
+  $('#themeBtn').onclick = (e)=>{ e.stopPropagation(); const dd=$('#themeDropdown'); dd.classList.toggle('show'); if(dd.classList.contains('show')) renderThemeDropdown(); };
   $('#userPill').onclick = (e)=>{ e.stopPropagation(); const dd=$('#userDropdown'); dd.classList.toggle('show');
     dd.innerHTML = `<div class="notif-item" id="switchUser">↔ Switch user</div><div class="notif-item muted tiny">Signed in as ${esc(activeUser)}</div>`;
     $('#switchUser').onclick=switchUser; };
   document.addEventListener('click', (e)=>{ if(!e.target.closest('#bellBtn')&&!e.target.closest('#notifDropdown')) $('#notifDropdown').classList.remove('show');
-    if(!e.target.closest('#userPill')&&!e.target.closest('#userDropdown')) $('#userDropdown').classList.remove('show'); });
+    if(!e.target.closest('#userPill')&&!e.target.closest('#userDropdown')) $('#userDropdown').classList.remove('show');
+    if(!e.target.closest('#themeBtn')&&!e.target.closest('#themeDropdown')) $('#themeDropdown').classList.remove('show'); });
   // online/offline
   addEventListener('offline', ()=>{ document.body.classList.add('offline'); });
   addEventListener('online', ()=>{ $('.offline-badge').textContent='⟳ Syncing…'; setTimeout(()=>{ document.body.classList.remove('offline'); $('.offline-badge').textContent='⚠ OFFLINE'; },1200); });
