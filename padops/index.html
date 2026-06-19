@@ -40,6 +40,7 @@
   --col-hold: #ff8800;
   --col-awaiting: #9b59ff;
   --col-complete: #00ff94;
+  --col-needs-planning: #13c2c2;   /* teal — Needs Planning */
 
   /* SpaceX brand */
   --spacex-red: #e31937;
@@ -303,6 +304,7 @@ main { flex: 1; overflow: hidden; position: relative; }
 .column[data-col="hold"] { --col-color: var(--col-hold); }
 .column[data-col="awaiting"] { --col-color: var(--col-awaiting); }
 .column[data-col="complete"] { --col-color: var(--col-complete); }
+.column[data-col="needs-planning"] { --col-color: var(--col-needs-planning); }
 .col-header { padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
   border-bottom: 1px solid var(--border-default); }
 .col-header .title { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.12em;
@@ -741,6 +743,7 @@ body.split-mode.detail-open main { width: 58%; }
 const CURRENT_SCHEMA_VERSION = 1;
 const LS_KEY = 'specialist-turnover-state';
 const COLUMNS = [
+  { id: 'needs-planning', label: 'Needs Planning' },
   { id: 'in-work',  label: 'In Work' },
   { id: 'in-queue', label: 'In Queue' },
   { id: 'hold',     label: 'On Hold' },
@@ -1479,7 +1482,7 @@ function renderBoard() {
   renderHudBadges();
 }
 function emptyStateHTML(colId) {
-  const msgs = { 'in-work':'No active work', 'in-queue':'Queue is clear', 'hold':'Nothing on hold',
+  const msgs = { 'needs-planning':'Nothing to plan', 'in-work':'No active work', 'in-queue':'Queue is clear', 'hold':'Nothing on hold',
     'awaiting':'Nothing awaiting', 'complete':'No completed tasks today' };
   return `<div class="col-empty">${msgs[colId]||'Empty'}<div class="hint">Press <b class="mono">N</b> or click below</div>
     <button class="btn sm" data-addcol="${colId}" style="margin-top:8px">＋ Add task</button></div>`;
