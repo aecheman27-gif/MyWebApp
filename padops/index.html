@@ -1379,6 +1379,8 @@ function renderFilterBar() {
   const activeCount = (filters.assignee!=='all'?1:0)+(filters.shift!=='all'?1:0)+(filters.priority!=='all'?1:0)+(filters.search?1:0);
   fb.innerHTML = `
     <div class="filter-row">
+      <button class="btn primary sm" id="newTaskBtn" title="New task (N)">＋ New Task</button>
+      <span class="divider-v"></span>
       <span class="filter-label">Assignee</span>
       <button class="chip ${filters.assignee==='all'?'active':''}" data-f="assignee" data-v="all">All</button>
       ${members.map(m => `<button class="chip ${filters.assignee===m?'active':''}" data-f="assignee" data-v="${esc(m)}">${esc(m)}</button>`).join('')}
@@ -1403,6 +1405,7 @@ function renderFilterBar() {
       <button class="chip" id="savePreset">＋</button>
     </div>`;
   // wire
+  $('#newTaskBtn').onclick = () => openCreateModal();
   $$('.chip[data-f]', fb).forEach(c => c.onclick = () => { filters[c.dataset.f] = c.dataset.v; activePresetId=null; renderFilterBar(); renderBoard(); });
   $('#searchInput').addEventListener('input', debounce(e => { filters.search = e.target.value; renderBoard(); }, 150));
   $('#showCompleted').onchange = e => { filters.showCompleted = e.target.checked; renderBoard(); };
@@ -1466,6 +1469,7 @@ function renderBoard() {
       <div class="col-header">
         <span class="title">${col.label}</span><span class="count">[${tasks.length}]</span>
         <button class="sort-toggle ${sortByPriorityCols[col.id]?'active':''}" data-sortcol="${col.id}" title="Sort by priority">⇅</button>
+        <button class="sort-toggle" data-addcol="${col.id}" title="Add task to ${col.label}" aria-label="Add task to ${col.label}">＋</button>
       </div>
       <div class="col-body" data-col="${col.id}">
         ${tasks.length ? tasks.map(t => cardHTML(t)).join('') : emptyStateHTML(col.id)}
@@ -1477,7 +1481,8 @@ function renderBoard() {
 function emptyStateHTML(colId) {
   const msgs = { 'in-work':'No active work', 'in-queue':'Queue is clear', 'hold':'Nothing on hold',
     'awaiting':'Nothing awaiting', 'complete':'No completed tasks today' };
-  return `<div class="col-empty">${msgs[colId]||'Empty'}<div class="hint">Press <b class="mono">N</b> to add a task</div></div>`;
+  return `<div class="col-empty">${msgs[colId]||'Empty'}<div class="hint">Press <b class="mono">N</b> or click below</div>
+    <button class="btn sm" data-addcol="${colId}" style="margin-top:8px">＋ Add task</button></div>`;
 }
 function ageClass(t) {
   const open = t.columnHistory.find(h=>h.exitedAt===null); if (!open) return '';
@@ -1599,7 +1604,8 @@ function wireBoard() {
       commit('move',{taskId:t.id,newStatus:col}); animateGlitch(t.id); renderBoard();
     });
   });
-  $$('.sort-toggle', board).forEach(b => b.onclick = (e) => { e.stopPropagation(); const c=b.dataset.sortcol; sortByPriorityCols[c]=!sortByPriorityCols[c]; renderBoard(); });
+  $$('[data-sortcol]', board).forEach(b => b.onclick = (e) => { e.stopPropagation(); const c=b.dataset.sortcol; sortByPriorityCols[c]=!sortByPriorityCols[c]; renderBoard(); });
+  $$('[data-addcol]', board).forEach(b => b.onclick = (e) => { e.stopPropagation(); const r=b.getBoundingClientRect(); openQuickAdd(r.left, r.bottom+4, b.dataset.addcol); });
 }
 function getDragAfter(container, y) {
   const cards = $$('.task-card:not([style*="opacity: 0.4"])', container);
@@ -1731,12 +1737,13 @@ function requireReasonThenMove(task, col, after) {
    21. QUICK-ADD (N key) + CREATE/EDIT MODAL
    ========================================================================== */
 let quickAddPos = { x: 200, y: 200 };
-function openQuickAdd(x, y) {
+function openQuickAdd(x, y, presetStatus) {
   const qa = $('#quickAdd');
   qa.style.left = Math.min(x||quickAddPos.x, innerWidth-340)+'px';
   qa.style.top = Math.min(y||quickAddPos.y, innerHeight-160)+'px';
+  const defStatus = presetStatus || 'in-queue';
   qa.innerHTML = `<input type="text" id="qaTitle" placeholder="Task title… (Enter to save)" autocomplete="off">
-    <div class="qa-row"><select id="qaStatus">${COLUMNS.map(c=>`<option value="${c.id}" ${c.id==='in-queue'?'selected':''}>${c.label}</option>`).join('')}</select></div>`;
+    <div class="qa-row"><select id="qaStatus">${COLUMNS.map(c=>`<option value="${c.id}" ${c.id===defStatus?'selected':''}>${c.label}</option>`).join('')}</select></div>`;
   qa.classList.add('show');
   const input = $('#qaTitle'); input.focus();
   input.onkeydown = (e) => {
