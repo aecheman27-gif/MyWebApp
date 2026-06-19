@@ -112,6 +112,47 @@ html[data-accent="violet"] {
   --border-default: rgba(155,89,255,0.1); --border-active: rgba(155,89,255,0.4); --border-glow: rgba(155,89,255,0.6);
   --glow-cyan-sm: 0 0 8px rgba(155,89,255,0.4); --glow-cyan-md: 0 0 20px rgba(155,89,255,0.25), 0 0 40px rgba(155,89,255,0.1);
 }
+
+/* Rich named themes — change accent AND surface/background tone for a distinct feel */
+html[data-accent="space"] {
+  --neon-cyan:#5b9dff; --text-neon:#8fbaff;
+  --border-default:rgba(91,157,255,0.1); --border-active:rgba(91,157,255,0.4); --border-glow:rgba(91,157,255,0.6);
+  --glow-cyan-sm:0 0 8px rgba(91,157,255,0.45); --glow-cyan-md:0 0 20px rgba(91,157,255,0.28),0 0 40px rgba(91,157,255,0.12);
+  --bg-void:#03050d; --bg-surface:#070b18; --bg-elevated:#0b1124; --bg-glass:rgba(7,11,24,0.72);
+}
+html[data-accent="space"] #bg-canvas { background:radial-gradient(ellipse at 30% 30%, #0a1638 0%, #03050d 65%); }
+
+html[data-accent="launch"] {
+  --neon-cyan:#ff7a18; --text-neon:#ffb066;
+  --border-default:rgba(255,122,24,0.12); --border-active:rgba(255,122,24,0.42); --border-glow:rgba(255,122,24,0.6);
+  --glow-cyan-sm:0 0 8px rgba(255,122,24,0.5); --glow-cyan-md:0 0 22px rgba(255,122,24,0.3),0 0 44px rgba(255,90,0,0.14);
+  --bg-void:#0c0803; --bg-surface:#140d05; --bg-elevated:#1c1308; --bg-glass:rgba(20,13,5,0.72);
+}
+html[data-accent="launch"] #bg-canvas { background:radial-gradient(ellipse at 50% 92%, #3a1c05 0%, #0c0803 60%); }
+
+html[data-accent="mars"] {
+  --neon-cyan:#ff5733; --text-neon:#ff8a66;
+  --border-default:rgba(255,87,51,0.12); --border-active:rgba(255,87,51,0.42); --border-glow:rgba(255,87,51,0.6);
+  --glow-cyan-sm:0 0 8px rgba(255,87,51,0.5); --glow-cyan-md:0 0 22px rgba(255,87,51,0.3),0 0 44px rgba(255,87,51,0.14);
+  --bg-void:#0e0604; --bg-surface:#170a06; --bg-elevated:#200f09; --bg-glass:rgba(23,10,6,0.72);
+}
+html[data-accent="mars"] #bg-canvas { background:radial-gradient(ellipse at 40% 40%, #3d1409 0%, #0e0604 62%); }
+
+html[data-accent="moon"] {
+  --neon-cyan:#aebfd6; --text-neon:#d8e2f0;
+  --border-default:rgba(174,191,214,0.12); --border-active:rgba(174,191,214,0.4); --border-glow:rgba(174,191,214,0.55);
+  --glow-cyan-sm:0 0 8px rgba(174,191,214,0.4); --glow-cyan-md:0 0 20px rgba(174,191,214,0.22),0 0 40px rgba(174,191,214,0.1);
+  --bg-void:#07090e; --bg-surface:#0d1118; --bg-elevated:#141a24; --bg-glass:rgba(13,17,24,0.72);
+}
+html[data-accent="moon"] #bg-canvas { background:radial-gradient(ellipse at 62% 32%, #1b2333 0%, #07090e 62%); }
+
+html[data-accent="falcon9"] {
+  --neon-cyan:#e31937; --text-neon:#f0f0f0;
+  --border-default:rgba(240,240,240,0.1); --border-active:rgba(240,240,240,0.3); --border-glow:rgba(227,25,55,0.6);
+  --glow-cyan-sm:0 0 8px rgba(227,25,55,0.5); --glow-cyan-md:0 0 20px rgba(227,25,55,0.3),0 0 40px rgba(227,25,55,0.12);
+  --bg-void:#000000; --bg-surface:#0a0a0a; --bg-elevated:#151515; --bg-glass:rgba(10,10,10,0.74);
+}
+html[data-accent="falcon9"] #bg-canvas { background:radial-gradient(ellipse at 50% 50%, #1a0a0d 0%, #000000 70%); }
 .color-swatch.sel { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 
 /* ============================================================================
@@ -727,7 +768,7 @@ body.split-mode.detail-open main { width: 58%; }
       </nav>
       <div style="position:relative">
         <button class="icon-btn" id="themeBtn" title="Theme & color scheme" aria-label="Theme and color scheme">🎨</button>
-        <div class="dropdown" id="themeDropdown" style="width:220px"></div>
+        <div class="dropdown" id="themeDropdown" style="width:248px"></div>
       </div>
       <button class="btn sm ghost" id="notepadBtn" title="Shift Notes (P)">📓 Shift Notes</button>
       <span class="spacer"></span>
@@ -1370,6 +1411,7 @@ function renderThemeDropdown() {
   const dd = $('#themeDropdown'); if (!dd) return;
   const modes = [['system','System'],['dark','Dark'],['light','Light']];
   const accents = [['cyan','#00f5ff','Cyan'],['green','#00ff94','Green'],['amber','#ffaa00','Amber'],['magenta','#ff006e','Magenta'],['violet','#9b59ff','Violet']];
+  const themes = [['space','Space','#5b9dff'],['launch','Launch','#ff7a18'],['mars','Mars','#ff5733'],['moon','Moon','#aebfd6'],['falcon9','Falcon 9','#e31937']];
   const curAccent = State.settings.accent || 'cyan';
   dd.innerHTML = `<div class="dropdown-head"><h3>Theme &amp; Color Scheme</h3></div>
     <div style="padding:10px 12px">
@@ -1377,6 +1419,11 @@ function renderThemeDropdown() {
       <div class="seg" style="width:100%">${modes.map(([v,l])=>`<button data-mode="${v}" class="${State.settings.theme===v?'active':''}" style="flex:1">${l}</button>`).join('')}</div>
       <div class="filter-label" style="margin:12px 0 6px">Accent</div>
       <div class="color-grid">${accents.map(([v,c,l])=>`<div class="color-swatch ${curAccent===v?'sel':''}" data-accent="${v}" title="${l}" style="background:${c}"></div>`).join('')}</div>
+      <div class="filter-label" style="margin:12px 0 6px">Themes</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+        ${themes.map(([v,l,c])=>`<button class="btn sm ${curAccent===v?'primary':'ghost'}" data-accent="${v}" style="display:flex;align-items:center;gap:6px;justify-content:flex-start">
+          <span style="width:10px;height:10px;border-radius:50%;background:${c};box-shadow:0 0 6px ${c};flex-shrink:0"></span>${l}</button>`).join('')}
+      </div>
     </div>`;
   $$('[data-mode]', dd).forEach(b=>b.onclick=()=>{ State.settings.theme=b.dataset.mode; commit('settings'); applyTheme(); renderThemeDropdown(); if(currentRoute==='settings') renderSettings(); });
   $$('[data-accent]', dd).forEach(s=>s.onclick=()=>{ State.settings.accent=s.dataset.accent; commit('settings'); applyTheme(); renderThemeDropdown(); });
