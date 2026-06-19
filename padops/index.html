@@ -192,6 +192,8 @@ header.hud {
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
   padding: 8px 16px;
+  position: relative;   /* establish stacking above the board so header dropdowns render on top */
+  z-index: 100;
 }
 html[data-theme="light"] header.hud { background: rgba(232,237,248,0.92); }
 .hud-row { display: flex; align-items: center; gap: 16px; }
