@@ -936,6 +936,13 @@ function fmtDuration(ms) {
   const days = Math.floor(hrs/24), rh = hrs%24;
   return days + 'd' + (rh? ' '+rh+'h':'');
 }
+function fmtDaysHours(hours) {            // express a duration-in-hours as days + hours
+  const totalMin = Math.round((hours||0)*60);
+  if (totalMin < 60) return totalMin + 'm';
+  const totalH = Math.round(hours);
+  const d = Math.floor(totalH/24), h = totalH%24;
+  return d>0 ? (d+'d' + (h? ' '+h+'h' : '')) : (h+'h');
+}
 function relTime(d) {
   const diff = Date.now() - new Date(d).getTime();
   const m = Math.floor(diff/60000);
@@ -3061,8 +3068,8 @@ function renderStats() {
     </div>
     <div class="panel"><h2>Average Time-in-Column</h2>
       ${COLUMNS.map(c=>{ const v=avgCol[c.id]; const col=v>72?'var(--neon-magenta)':v>24?'var(--col-hold)':'var(--neon-cyan)'; return `<div class="stat-bar-row"><span class="lbl">${c.label}</span>
-        <svg height="20" width="100%"><rect x="0" y="2" width="${(v/maxAvg)*80}%" height="16" fill="${col}" rx="2"/><text x="${(v/maxAvg)*80+1}%" y="14" fill="var(--text-secondary)" font-size="11" font-family="monospace">${v.toFixed(1)}h</text></svg></div>`; }).join('')}
-      <div class="tiny sec mt8">Tasks get stuck in On Hold for an average of <b>${avgCol['hold'].toFixed(1)}</b> hours.</div>
+        <svg height="20" width="100%"><rect x="0" y="2" width="${(v/maxAvg)*80}%" height="16" fill="${col}" rx="2"/><text x="${(v/maxAvg)*80+1}%" y="14" fill="var(--text-secondary)" font-size="11" font-family="monospace">${fmtDaysHours(v)}</text></svg></div>`; }).join('')}
+      <div class="tiny sec mt8">Tasks get stuck in On Hold for an average of <b>${fmtDaysHours(avgCol['hold'])}</b>.</div>
     </div>
     <div class="panel"><h2>Handoff Health</h2>
       <div class="metric-row">
