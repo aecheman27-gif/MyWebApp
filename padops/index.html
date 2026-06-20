@@ -927,6 +927,7 @@ function fmtClock(d) { // 12h with seconds
 }
 function fmtDateKey(d){ d=new Date(d); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function fmtDateTime(d){ d=new Date(d); return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
+function fmtFull(d){ d=new Date(d); return d.toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',second:'2-digit'}); }
 function fmtDuration(ms) {
   const mins = Math.floor(ms/60000);
   if (mins < 60) return mins + 'm';
@@ -2717,7 +2718,7 @@ function handoffHistItem(h) {
   const fromIcon = h.fromShift==='day'?'☀ Day':'☾ Night';
   const toIcon = h.toShift==='day'?'☀ Day':'☾ Night';
   const ack = h.acknowledgedBy
-    ? `<span class="hist-ack ok">✓ ack by ${esc(h.acknowledgedBy)} · ${fmtTime(h.acknowledgedAt)}</span>`
+    ? `<span class="hist-ack ok">✓ ack by ${esc(h.acknowledgedBy)} · ${fmtFull(h.acknowledgedAt)}</span>`
     : `<span class="hist-ack pending">awaiting ack</span>`;
   const snap = (h.taskSnapshot||[]).length
     ? `<div class="tiny sec mt12 mb8">Board snapshot · ${h.taskSnapshot.length} open task${h.taskSnapshot.length>1?'s':''}</div>`
@@ -2726,7 +2727,7 @@ function handoffHistItem(h) {
   return `<details class="hist-item">
     <summary>
       <span class="shift-badge ${h.fromShift}">${fromIcon} → ${toIcon}</span>
-      <span class="hist-meta">${esc(h.submittedBy)} · ${fmtTime(h.submittedAt)}</span>
+      <span class="hist-meta">Submitted by ${esc(h.submittedBy)} · ${fmtFull(h.submittedAt)}</span>
       ${ack}
       ${canAck?`<button class="btn sm primary" data-ack="${h.id}">Acknowledge</button>`:ownPending?'<span class="tiny muted">your handoff</span>':''}
     </summary>
