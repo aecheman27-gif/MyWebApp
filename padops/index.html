@@ -163,9 +163,12 @@ html[data-accent="falconheavy"] {
   --bg-void:#070910; --bg-surface:rgba(10,12,20,0.88); --bg-elevated:rgba(15,18,28,0.96); --bg-glass:rgba(8,10,18,0.72);
 }
 html[data-accent="falconheavy"] #bg-canvas {
-  background:#070910 linear-gradient(rgba(5,7,14,0.70), rgba(5,7,14,0.86)) center/cover no-repeat fixed;
-  background-image:linear-gradient(rgba(5,7,14,0.70), rgba(5,7,14,0.86)), url('falcon-heavy.webp');
-  background-size:cover; background-position:center; background-repeat:no-repeat; background-attachment:fixed;
+  background-color:#070910;
+  background-image:linear-gradient(rgba(5,7,14,0.40), rgba(5,7,14,0.78)), url('falcon-heavy.webp');
+  background-size:cover, cover;
+  background-position:center center, center top;   /* bias photo to the top so the rocket shows */
+  background-repeat:no-repeat, no-repeat;
+  background-attachment:fixed, fixed;
 }
 html[data-accent="falconheavy"] .bg-grid { opacity:0.12; }
 html[data-accent="falconheavy"] .bg-scanline { display:none; }
