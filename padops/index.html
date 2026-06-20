@@ -156,6 +156,28 @@ html[data-accent="falcon9"] #bg-canvas { background:radial-gradient(ellipse at 5
 
 .color-swatch.sel { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 
+/* Per-theme decorative background motif (inline SVG — no external files).
+   Subtle, low-opacity, tucked behind the board. Hidden by default. */
+.bg-motif { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0; background-repeat: no-repeat; }
+html[data-accent="moon"] .bg-motif {
+  opacity: 0.55; background-position: 88% 16%; background-size: 360px 360px;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><defs><radialGradient id='g' cx='0.38' cy='0.34' r='0.66'><stop offset='0' stop-color='%23eef3fb'/><stop offset='0.58' stop-color='%23c2cddd'/><stop offset='1' stop-color='%23828ea6'/></radialGradient></defs><circle cx='210' cy='210' r='150' fill='url(%23g)'/><circle cx='160' cy='160' r='22' fill='%23000' opacity='0.05'/><circle cx='258' cy='246' r='34' fill='%23000' opacity='0.06'/><circle cx='220' cy='138' r='13' fill='%23000' opacity='0.05'/><circle cx='168' cy='258' r='17' fill='%23000' opacity='0.045'/><circle cx='250' cy='168' r='10' fill='%23000' opacity='0.04'/></svg>");
+}
+html[data-accent="mars"] .bg-motif {
+  opacity: 0.5; background-position: 88% 16%; background-size: 360px 360px;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><defs><radialGradient id='g' cx='0.38' cy='0.34' r='0.68'><stop offset='0' stop-color='%23e8804f'/><stop offset='0.55' stop-color='%23b34a26'/><stop offset='1' stop-color='%236d2613'/></radialGradient></defs><circle cx='210' cy='210' r='150' fill='url(%23g)'/><ellipse cx='198' cy='78' rx='42' ry='15' fill='%23f0ece6' opacity='0.22'/><circle cx='252' cy='232' r='30' fill='%23000' opacity='0.09'/><circle cx='160' cy='184' r='18' fill='%23000' opacity='0.08'/><circle cx='232' cy='160' r='12' fill='%23000' opacity='0.07'/><circle cx='190' cy='250' r='9' fill='%23000' opacity='0.06'/></svg>");
+}
+html[data-accent="falcon9"] .bg-motif {
+  opacity: 0.14; background-position: 93% 102%; background-size: 150px 440px;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='520'><path d='M90 12 C68 44 60 78 60 120 L60 430 L120 430 L120 120 C120 78 112 44 90 12 Z' fill='%23eef1f6'/><rect x='60' y='248' width='60' height='16' fill='%23e31937'/><circle cx='90' cy='150' r='9' fill='%230a0f1a' opacity='0.5'/><path d='M60 360 L30 470 L60 438 Z' fill='%23c7cdd8'/><path d='M120 360 L150 470 L120 438 Z' fill='%23c7cdd8'/><rect x='84' y='430' width='12' height='26' fill='%23b9c0cc'/></svg>");
+}
+html[data-accent="launch"] .bg-motif {
+  opacity: 0.6; background-position: 50% 100%, center bottom; background-size: 150px 470px, 100% 100%;
+  background-image:
+    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='560'><path d='M90 20 C70 50 62 84 62 124 L62 360 L118 360 L118 124 C118 84 110 50 90 20 Z' fill='%23e8ecf2'/><rect x='62' y='248' width='56' height='12' fill='%23ff7a18'/><circle cx='90' cy='150' r='8' fill='%230a0f1a' opacity='0.45'/><path d='M62 320 L36 408 L62 372 Z' fill='%23c7cdd8'/><path d='M118 320 L144 408 L118 372 Z' fill='%23c7cdd8'/><path d='M70 360 Q90 520 90 545 Q90 520 110 360 Z' fill='%23ffcf4d' opacity='0.85'/><path d='M79 360 Q90 470 90 500 Q90 470 101 360 Z' fill='%23ff8a1e'/></svg>"),
+    radial-gradient(ellipse 60% 38% at 50% 100%, rgba(255,120,20,0.16), transparent 72%);
+}
+
 /* ============================================================================
    2. RESET / BASE
    ========================================================================== */
@@ -751,6 +773,7 @@ body.split-mode.detail-open main { width: 58%; }
 <canvas id="starfield"></canvas>
 <div class="bg-grid"></div>
 <div class="bg-scanline"></div>
+<div class="bg-motif"></div>
 
 <div class="snapshot-banner" id="snapshotBanner"></div>
 
