@@ -2647,7 +2647,11 @@ function renderHandoff() {
     </div>
     <div class="panel">
       <h2>Handoff History <span class="muted tiny">(last 14 days)</span></h2>
-      ${recent.length?recent.map(h=>`<div class="log-line"><span class="la">${esc(h.submittedBy)}</span><span class="ld">${h.fromShift} → ${h.toShift} · submitted ${fmtDateTime(h.submittedAt)} ${h.acknowledgedBy?`· ✓ ack by ${esc(h.acknowledgedBy)} ${fmtDateTime(h.acknowledgedAt)}`:'· <span style="color:var(--neon-yellow)">awaiting ack</span>'}</span></div>`).join(''):'<div class="muted">No handoffs in last 14 days</div>'}
+      ${recent.length?recent.map(h=>{
+        const canAck = !h.acknowledgedBy && h.submittedBy!==activeUser && shiftMembers(h.toShift).includes(activeUser);
+        const ownPending = !h.acknowledgedBy && h.submittedBy===activeUser;
+        return `<div class="log-line"><span class="la">${esc(h.submittedBy)}</span><span class="ld">${h.fromShift} → ${h.toShift} · submitted ${fmtDateTime(h.submittedAt)} ${h.acknowledgedBy?`· ✓ ack by ${esc(h.acknowledgedBy)} ${fmtDateTime(h.acknowledgedAt)}`:'· <span style="color:var(--neon-yellow)">awaiting ack</span>'}</span>${canAck?`<button class="btn sm primary" data-ack="${h.id}">Acknowledge</button>`:ownPending?'<span class="tiny muted">your handoff</span>':''}</div>`;
+      }).join(''):'<div class="muted">No handoffs in last 14 days</div>'}
     </div>`;
   const baton = $('#batonNote');
   const submit = $('#submitHandoff');
@@ -2664,6 +2668,7 @@ function renderHandoff() {
     clearBatonError();
     submitHandoff(baton.innerHTML, incoming);
   };
+  $$('[data-ack]', $('#handoffWrap')).forEach(b=>b.onclick=()=>{ const h=State.handoffs.find(x=>x.id===b.dataset.ack); if(h){ acknowledgeHandoff(h); renderHandoff(); } });
 }
 function handoffTaskRow(t) {
   return `<div class="log-line"><span class="status-badge" style="color:var(--col-${t.status.replace('in-','')})">${COL_LABEL[t.status]}</span>
