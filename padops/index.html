@@ -594,6 +594,34 @@ main { flex: 1; overflow: hidden; position: relative; }
 .log-line .snap-btn { font-size: 10px; opacity: 0; }
 .log-line:hover .snap-btn { opacity: 1; }
 
+/* Outgoing summary — grouped headers */
+.ho-group-h { display: flex; align-items: center; gap: 8px; margin: 16px 0 6px; font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
+.ho-group-h.flag { color: var(--neon-yellow); }
+.ho-count { color: var(--text-muted); }
+
+/* Handoff history — date/shift grouped, expandable */
+.hist-date { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--text-neon);
+  text-transform: uppercase; margin: 16px 0 6px; padding-bottom: 4px; border-bottom: 1px solid var(--border-default); }
+.hist-item { border: 1px solid var(--border-default); border-radius: var(--radius); margin-bottom: 6px; background: rgba(255,255,255,0.015); }
+.hist-item > summary { list-style: none; cursor: pointer; padding: 8px 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hist-item > summary::-webkit-details-marker { display: none; }
+.hist-item > summary::before { content: '▸'; color: var(--text-muted); font-size: 10px; }
+.hist-item[open] > summary::before { content: '▾'; }
+.hist-item[open] { border-color: var(--border-active); }
+.shift-badge { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; padding: 2px 8px;
+  border: 1px solid var(--border-default); border-radius: 3px; white-space: nowrap; }
+.shift-badge.day { color: var(--neon-yellow); border-color: rgba(255,230,0,0.3); }
+.shift-badge.night { color: var(--col-awaiting); border-color: rgba(155,89,255,0.3); }
+.hist-meta { font-size: 12px; color: var(--text-secondary); }
+.hist-ack { font-family: var(--font-mono); font-size: 10px; margin-left: auto; }
+.hist-ack.ok { color: var(--neon-green); }
+.hist-ack.pending { color: var(--neon-yellow); }
+.hist-body { padding: 8px 12px 12px; border-top: 1px solid var(--border-default); }
+.baton-readonly { background: var(--bg-void); border: 1px solid var(--border-default); border-radius: var(--radius);
+  padding: 10px; font-size: 13px; line-height: 1.55; }
+.baton-readonly ul { padding-left: 20px; margin: 4px 0; }
+
 /* Stats SVG */
 .stat-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .stat-bar-row .lbl { width: 120px; font-size: 12px; }
@@ -2619,16 +2647,18 @@ function renderHandoff() {
   const flagged = nonComplete.filter(t=>t.flagged);
   const requests = nonComplete.filter(t=>t.type==='request');
   const others = nonComplete.filter(t=>!t.flagged && t.type!=='request');
-  const recent = State.handoffs.slice().reverse().filter(h => Date.now()-new Date(h.submittedAt).getTime() < 14*86400000);
+  const histSorted = State.handoffs.slice().sort((a,b)=>new Date(b.submittedAt)-new Date(a.submittedAt));
+  const byDate = {}; histSorted.forEach(h=>{ const d=fmtDateKey(h.submittedAt); (byDate[d]=byDate[d]||[]).push(h); });
+  const histDates = Object.keys(byDate);
   const notepadKey = `${fmtDateKey(new Date())}-${sh}`;
   const notepad = State.shiftNotes[notepadKey];
   w.innerHTML = `<h1>Shift Handoff</h1>
     <div class="sub">${sh==='day'?'☀ Day':'☾ Night'} Shift — ${shiftMembers(sh).join(', ')} · Handoff in <b class="mono">${fmtDuration(nextHandoffTime()-new Date())}</b></div>
     <div class="panel">
       <h2>Outgoing Summary <span class="muted tiny">(auto-populated, editable)</span></h2>
-      ${flagged.length?`<div class="tiny sec mb8">⚑ Flagged / pinned</div>`+flagged.map(handoffTaskRow).join(''):''}
-      ${requests.length?`<div class="tiny sec mb8 mt12">📥 Requests for incoming shift</div>`+requests.map(handoffTaskRow).join(''):''}
-      ${others.length?`<div class="tiny sec mb8 mt12">Other open tasks</div>`+others.map(handoffTaskRow).join(''):''}
+      ${flagged.length?`<div class="ho-group-h flag">⚑ Flagged / pinned <span class="ho-count">${flagged.length}</span></div>`+flagged.map(t=>handoffTaskRow(t)).join(''):''}
+      ${requests.length?`<div class="ho-group-h">📥 Requests for incoming shift <span class="ho-count">${requests.length}</span></div>`+requests.map(t=>handoffTaskRow(t)).join(''):''}
+      ${handoffStatusGroups(others)}
       ${!nonComplete.length?'<div class="muted">No open tasks — clean board.</div>':''}
       ${notepad?`<div class="mt12 tiny sec">📓 Shift notes excerpt:</div><div class="panel" style="background:var(--bg-void);margin-top:4px">${esc(stripHTML(notepad).slice(0,500))}${stripHTML(notepad).length>500?'…':''}</div>`:''}
     </div>
@@ -2646,12 +2676,8 @@ function renderHandoff() {
       <div class="mt8"><button class="btn primary" id="submitHandoff">Submit Handoff</button></div>
     </div>
     <div class="panel">
-      <h2>Handoff History <span class="muted tiny">(last 14 days)</span></h2>
-      ${recent.length?recent.map(h=>{
-        const canAck = !h.acknowledgedBy && h.submittedBy!==activeUser && shiftMembers(h.toShift).includes(activeUser);
-        const ownPending = !h.acknowledgedBy && h.submittedBy===activeUser;
-        return `<div class="log-line"><span class="la">${esc(h.submittedBy)}</span><span class="ld">${h.fromShift} → ${h.toShift} · submitted ${fmtDateTime(h.submittedAt)} ${h.acknowledgedBy?`· ✓ ack by ${esc(h.acknowledgedBy)} ${fmtDateTime(h.acknowledgedAt)}`:'· <span style="color:var(--neon-yellow)">awaiting ack</span>'}</span>${canAck?`<button class="btn sm primary" data-ack="${h.id}">Acknowledge</button>`:ownPending?'<span class="tiny muted">your handoff</span>':''}</div>`;
-      }).join(''):'<div class="muted">No handoffs in last 14 days</div>'}
+      <h2>Handoff History <span class="muted tiny">(browse by date &amp; shift)</span></h2>
+      ${histDates.length?histDates.map(d=>`<div class="hist-date">${new Date(d+'T00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric',year:'numeric'})}</div>${byDate[d].map(handoffHistItem).join('')}`).join(''):'<div class="muted">No handoffs yet</div>'}
     </div>`;
   const baton = $('#batonNote');
   const submit = $('#submitHandoff');
@@ -2668,11 +2694,48 @@ function renderHandoff() {
     clearBatonError();
     submitHandoff(baton.innerHTML, incoming);
   };
-  $$('[data-ack]', $('#handoffWrap')).forEach(b=>b.onclick=()=>{ const h=State.handoffs.find(x=>x.id===b.dataset.ack); if(h){ acknowledgeHandoff(h); renderHandoff(); } });
+  $$('[data-ack]', $('#handoffWrap')).forEach(b=>b.onclick=(e)=>{ e.preventDefault(); e.stopPropagation(); const h=State.handoffs.find(x=>x.id===b.dataset.ack); if(h){ acknowledgeHandoff(h); renderHandoff(); } });
 }
-function handoffTaskRow(t) {
-  return `<div class="log-line"><span class="status-badge" style="color:var(--col-${t.status.replace('in-','')})">${COL_LABEL[t.status]}</span>
-    <span class="ld"><b>${esc(t.title)}</b> ${t.assignee?'· '+esc(t.assignee):''} ${t.holdReason?'· <i>'+esc(t.holdReason)+'</i>':''}</span></div>`;
+function colColor(status){ return ({'in-work':'--col-inwork','in-queue':'--col-queue','hold':'--col-hold','awaiting':'--col-awaiting','complete':'--col-complete','needs-planning':'--col-needs-planning'})[status]||'--text-secondary'; }
+function handoffTaskRow(t, grouped) {
+  const lead = grouped
+    ? `<span class="priority-dot priority-${t.priority}" style="margin-top:7px" title="${t.priority}"></span>`
+    : `<span class="status-badge" style="color:var(${colColor(t.status)})">${COL_LABEL[t.status]}</span>`;
+  return `<div class="log-line">${lead}<span class="ld">${t.flagged?'<span style="color:var(--neon-yellow)">⚑ </span>':''}<b>${esc(t.title)}</b> ${t.assignee?'· '+esc(t.assignee):'· <span class="muted">unassigned</span>'}${t.holdReason?' · <i class="muted">'+esc(t.holdReason)+'</i>':''}</span></div>`;
+}
+const HANDOFF_GROUP_ORDER = ['in-work','hold','awaiting','in-queue','needs-planning'];
+function handoffStatusGroups(tasks) {
+  return HANDOFF_GROUP_ORDER.map(colId => {
+    const ts = tasks.filter(t=>t.status===colId); if (!ts.length) return '';
+    return `<div class="ho-group-h"><span class="status-badge" style="color:var(${colColor(colId)})">${COL_LABEL[colId]}</span><span class="ho-count">${ts.length}</span></div>`
+      + ts.map(t=>handoffTaskRow(t, true)).join('');
+  }).join('');
+}
+function handoffHistItem(h) {
+  const canAck = !h.acknowledgedBy && h.submittedBy!==activeUser && shiftMembers(h.toShift).includes(activeUser);
+  const ownPending = !h.acknowledgedBy && h.submittedBy===activeUser;
+  const fromIcon = h.fromShift==='day'?'☀ Day':'☾ Night';
+  const toIcon = h.toShift==='day'?'☀ Day':'☾ Night';
+  const ack = h.acknowledgedBy
+    ? `<span class="hist-ack ok">✓ ack by ${esc(h.acknowledgedBy)} · ${fmtTime(h.acknowledgedAt)}</span>`
+    : `<span class="hist-ack pending">awaiting ack</span>`;
+  const snap = (h.taskSnapshot||[]).length
+    ? `<div class="tiny sec mt12 mb8">Board snapshot · ${h.taskSnapshot.length} open task${h.taskSnapshot.length>1?'s':''}</div>`
+      + h.taskSnapshot.map(s=>`<div class="log-line"><span class="status-badge" style="color:var(${colColor(s.status)})">${COL_LABEL[s.status]||s.status}</span><span class="ld">${s.flagged?'⚑ ':''}${esc(s.title)} ${s.assignee?'· '+esc(s.assignee):''}${s.holdReason?' · <i class="muted">'+esc(s.holdReason)+'</i>':''}</span></div>`).join('')
+    : '<div class="muted tiny mt8">No open tasks captured.</div>';
+  return `<details class="hist-item">
+    <summary>
+      <span class="shift-badge ${h.fromShift}">${fromIcon} → ${toIcon}</span>
+      <span class="hist-meta">${esc(h.submittedBy)} · ${fmtTime(h.submittedAt)}</span>
+      ${ack}
+      ${canAck?`<button class="btn sm primary" data-ack="${h.id}">Acknowledge</button>`:ownPending?'<span class="tiny muted">your handoff</span>':''}
+    </summary>
+    <div class="hist-body">
+      <div class="tiny sec mb8">Baton pass note${h.aiAssisted?' · <span style="color:var(--neon-cyan)">✨ AI-assisted</span>':''}</div>
+      <div class="baton-readonly">${h.batonNote||'<i class="muted">none</i>'}</div>
+      ${snap}
+    </div>
+  </details>`;
 }
 function submitHandoff(batonHTML, incoming) {
   const sh = currentShift();
