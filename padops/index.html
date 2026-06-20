@@ -172,6 +172,8 @@ body {
 button { font-family: inherit; cursor: pointer; color: inherit; }
 input, textarea, select { font-family: inherit; color: inherit; }
 a { color: var(--neon-cyan); text-decoration: none; }
+.auto-link { color: var(--neon-cyan); text-decoration: underline; text-underline-offset: 2px; word-break: break-all; }
+.auto-link:hover { text-shadow: var(--glow-cyan-sm); }
 .mono { font-family: var(--font-mono); letter-spacing: 0.08em; }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -858,6 +860,23 @@ const uuid = () => (crypto.randomUUID ? crypto.randomUUID() :
 const nowISO = () => new Date().toISOString();
 const esc = (s) => String(s==null?'':s).replace(/[&<>"']/g, m =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+/* Escape text and turn any URLs (http(s):// or www.) into clickable new-tab links */
+function linkify(text) {
+  text = String(text==null?'':text);
+  const urlRe = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi;
+  let out = '', last = 0, m;
+  while ((m = urlRe.exec(text)) !== null) {
+    out += esc(text.slice(last, m.index));
+    let url = m[0], trail = '';
+    const tm = url.match(/[.,;:!?)\]]+$/);          // don't swallow trailing punctuation
+    if (tm) { trail = tm[0]; url = url.slice(0, -trail.length); }
+    const href = url.startsWith('http') ? url : 'https://' + url;
+    out += `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer" class="auto-link">${esc(url)}</a>` + esc(trail);
+    last = m.index + m[0].length;
+  }
+  out += esc(text.slice(last));
+  return out;
+}
 const clamp = (n,a,b) => Math.max(a, Math.min(b, n));
 const lerp = (a,b,t) => a + (b-a)*t;
 
@@ -1612,7 +1631,7 @@ function isStale(t) {
 }
 function cardHTML(t) {
   const cf = State.customFieldDefs.filter(f=>f.showOnCard && t.customFields[f.id]!=null && t.customFields[f.id]!=='')
-    .map(f => `<span class="card-cf"><span class="cf-k">${esc(f.name)}</span> <span class="cf-v">${esc(t.customFields[f.id])}</span></span>`).join('');
+    .map(f => `<span class="card-cf"><span class="cf-k">${esc(f.name)}</span> <span class="cf-v">${linkify(t.customFields[f.id])}</span></span>`).join('');
   const estTag = t.estimatedHours ? `<span class="card-tag">~${t.estimatedHours}h</span>` : '';
   const tagTags = (t.tags||[]).slice(0,3).map(tg=>`<span class="card-tag">#${esc(tg)}</span>`).join('');
   const open = t.columnHistory.find(h=>h.exitedAt===null);
@@ -1630,7 +1649,7 @@ function cardHTML(t) {
       <span class="card-drag" data-drag="${t.id}">⣿</span>
       <span class="card-title" data-title="${t.id}">${esc(t.title)}</span>
     </div>
-    ${t.holdReason && (t.status==='hold'||t.status==='awaiting') ? `<div class="hold-reason ${t.status==='awaiting'?'awaiting-reason':''}">${esc(t.holdReason)}</div>`:''}
+    ${t.holdReason && (t.status==='hold'||t.status==='awaiting') ? `<div class="hold-reason ${t.status==='awaiting'?'awaiting-reason':''}">${linkify(t.holdReason)}</div>`:''}
     ${blockedBy.length && !blockerResolved.length ? `<span class="dep-tag">⛔ Blocked by: ${esc(blockedBy.map(b=>b.title).join(', '))}</span>`:''}
     ${blockerResolved.length ? `<span class="dep-tag resolved">⚑ Blocker resolved — ${esc(blockerResolved.map(b=>b.title).join(', '))}</span>`:''}
     ${blocking.length ? `<span class="dep-tag blocking">⛓ Blocking ${blocking.length} task${blocking.length>1?'s':''}</span>`:''}
@@ -1672,7 +1691,7 @@ function wireBoard() {
   $$('.task-card', board).forEach(card => {
     const id = card.dataset.id;
     card.addEventListener('click', (e) => {
-      if (e.target.closest('[data-flag]') || e.target.closest('[data-menu]') || e.target.closest('[data-assignee]') || e.target.closest('[data-title][contenteditable]')) return;
+      if (e.target.closest('a') || e.target.closest('[data-flag]') || e.target.closest('[data-menu]') || e.target.closest('[data-assignee]') || e.target.closest('[data-title][contenteditable]')) return;
       if (e.shiftKey || e.ctrlKey || e.metaKey) { toggleSelect(id); return; }
       if (selectedIds.size) { clearSelection(); }
       openDetail(id);
@@ -2061,7 +2080,7 @@ function commentsHTML(t) {
   return t.comments.map(c => `<div class="comment">${avatarHTML(c.author,28)}<div class="body">
     <div class="ch"><b>${esc(c.author)}</b> <span class="mono">${fmtTime(c.timestamp)}</span>
     ${c.author===activeUser?`<button class="btn sm ghost del-c" data-delc="${c.id}">delete</button>`:''}</div>
-    <div class="ct">${esc(c.text)}</div></div></div>`).join('');
+    <div class="ct">${linkify(c.text)}</div></div></div>`).join('');
 }
 
 let timerInterval = null;
@@ -2250,6 +2269,16 @@ function handleMarkdownShortcuts() {
   if (/^\[\] $/.test(lineStart) || /^\[ \] $/.test(lineStart)) { node.textContent=''; editorAction('checklist'); editorChanged(); return; }
   if (/^```$/.test(lineStart)) { node.textContent=''; editorAction('codeblock'); editorChanged(); return; }
   if (/^---$/.test(lineStart)) { node.textContent=''; document.execCommand('insertHorizontalRule'); editorChanged(); return; }
+  // auto-link a URL when the user types a space right after it
+  const urlBefore = before.match(/(?:^|\s)((?:https?:\/\/|www\.)[^\s]+)\s$/);
+  if (urlBefore) {
+    const url = urlBefore[1]; const end = off - 1; const start = end - url.length;
+    const range = document.createRange(); range.setStart(node, start); range.setEnd(node, end);
+    sel.removeAllRanges(); sel.addRange(range);
+    const href = url.startsWith('http') ? url : 'https://' + url;
+    document.execCommand('insertHTML', false, `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>`);
+    editorChanged(); return;
+  }
   // inline **bold**, *italic*, ~~strike~~, `code`
   inlineMarkdown(node, sel);
 }
@@ -2338,6 +2367,13 @@ function editorPaste(e) {
       reader.onload = () => { document.execCommand('insertHTML', false, `<img src="${reader.result}" style="max-width:100%">`); editorChanged(); };
       reader.readAsDataURL(file); return;
     }
+  }
+  // If pasted plain text contains URL(s), insert them as clickable links
+  const txt = e.clipboardData?.getData('text/plain');
+  if (txt && /(https?:\/\/|www\.)/i.test(txt)) {
+    e.preventDefault();
+    document.execCommand('insertHTML', false, linkify(txt).replace(/\n/g, '<br>'));
+    editorChanged();
   }
 }
 function saveNote(t) {
@@ -2632,7 +2668,7 @@ function logLineHTML(e) {
     handoff_acknowledged:'Acknowledged handoff', dependency_added:'Added dependency to', completed:'Completed', archived:'Archived' }[e.type] || e.type;
   const title = e.taskTitle?` "${esc(e.taskTitle.slice(0,40))}"`:'';
   return `<div class="log-line"><span class="lt">${fmtTime(e.timestamp)}</span><span class="la">${esc(e.actor)}</span>
-    <span class="ld">${verb}${title} ${e.detail?'<span class="muted">'+esc(e.detail)+'</span>':''}</span>
+    <span class="ld">${verb}${title} ${e.detail?'<span class="muted">'+linkify(e.detail)+'</span>':''}</span>
     <button class="btn sm ghost snap-btn" data-snap="${e.timestamp}">view board</button></div>`;
 }
 function showSnapshot(timestamp) {
