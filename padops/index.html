@@ -156,27 +156,10 @@ html[data-accent="falcon9"] #bg-canvas { background:radial-gradient(ellipse at 5
 
 .color-swatch.sel { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 
-/* Per-theme decorative background motif (inline SVG — no external files).
-   Subtle, low-opacity, tucked behind the board. Hidden by default. */
-.bg-motif { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0; background-repeat: no-repeat; }
-html[data-accent="moon"] .bg-motif {
-  opacity: 0.55; background-position: 88% 16%; background-size: 360px 360px;
-  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><defs><radialGradient id='g' cx='0.38' cy='0.34' r='0.66'><stop offset='0' stop-color='%23eef3fb'/><stop offset='0.58' stop-color='%23c2cddd'/><stop offset='1' stop-color='%23828ea6'/></radialGradient></defs><circle cx='210' cy='210' r='150' fill='url(%23g)'/><circle cx='160' cy='160' r='22' fill='%23000' opacity='0.05'/><circle cx='258' cy='246' r='34' fill='%23000' opacity='0.06'/><circle cx='220' cy='138' r='13' fill='%23000' opacity='0.05'/><circle cx='168' cy='258' r='17' fill='%23000' opacity='0.045'/><circle cx='250' cy='168' r='10' fill='%23000' opacity='0.04'/></svg>");
-}
-html[data-accent="mars"] .bg-motif {
-  opacity: 0.5; background-position: 88% 16%; background-size: 360px 360px;
-  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><defs><radialGradient id='g' cx='0.38' cy='0.34' r='0.68'><stop offset='0' stop-color='%23e8804f'/><stop offset='0.55' stop-color='%23b34a26'/><stop offset='1' stop-color='%236d2613'/></radialGradient></defs><circle cx='210' cy='210' r='150' fill='url(%23g)'/><ellipse cx='198' cy='78' rx='42' ry='15' fill='%23f0ece6' opacity='0.22'/><circle cx='252' cy='232' r='30' fill='%23000' opacity='0.09'/><circle cx='160' cy='184' r='18' fill='%23000' opacity='0.08'/><circle cx='232' cy='160' r='12' fill='%23000' opacity='0.07'/><circle cx='190' cy='250' r='9' fill='%23000' opacity='0.06'/></svg>");
-}
-html[data-accent="falcon9"] .bg-motif {
-  opacity: 0.14; background-position: 93% 102%; background-size: 150px 440px;
-  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='520'><path d='M90 12 C68 44 60 78 60 120 L60 430 L120 430 L120 120 C120 78 112 44 90 12 Z' fill='%23eef1f6'/><rect x='60' y='248' width='60' height='16' fill='%23e31937'/><circle cx='90' cy='150' r='9' fill='%230a0f1a' opacity='0.5'/><path d='M60 360 L30 470 L60 438 Z' fill='%23c7cdd8'/><path d='M120 360 L150 470 L120 438 Z' fill='%23c7cdd8'/><rect x='84' y='430' width='12' height='26' fill='%23b9c0cc'/></svg>");
-}
-html[data-accent="launch"] .bg-motif {
-  opacity: 0.6; background-position: 50% 100%, center bottom; background-size: 150px 470px, 100% 100%;
-  background-image:
-    url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='560'><path d='M90 20 C70 50 62 84 62 124 L62 360 L118 360 L118 124 C118 84 110 50 90 20 Z' fill='%23e8ecf2'/><rect x='62' y='248' width='56' height='12' fill='%23ff7a18'/><circle cx='90' cy='150' r='8' fill='%230a0f1a' opacity='0.45'/><path d='M62 320 L36 408 L62 372 Z' fill='%23c7cdd8'/><path d='M118 320 L144 408 L118 372 Z' fill='%23c7cdd8'/><path d='M70 360 Q90 520 90 545 Q90 520 110 360 Z' fill='%23ffcf4d' opacity='0.85'/><path d='M79 360 Q90 470 90 500 Q90 470 101 360 Z' fill='%23ff8a1e'/></svg>"),
-    radial-gradient(ellipse 60% 38% at 50% 100%, rgba(255,120,20,0.16), transparent 72%);
-}
+/* Per-theme decorative background motif — rendered as inline SVG by renderMotif()
+   so filter-based (realistic) art renders reliably. Tucked behind the board. */
+.bg-motif { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.bg-motif > svg { position: absolute; }
 
 /* ============================================================================
    2. RESET / BASE
@@ -1467,6 +1450,94 @@ function applyTheme() {
   const a = State.settings.accent || 'cyan';
   if (a === 'cyan') document.documentElement.removeAttribute('data-accent');
   else document.documentElement.setAttribute('data-accent', a);
+  renderMotif(a);
+}
+/* Realistic, resolution-independent background art per theme (inline SVG).
+   Moon/Mars use feTurbulence + diffuse lighting for a procedurally-textured,
+   lit sphere; rockets are detailed vector illustrations. */
+function sphereSVG({ size, pos, opacity, grad, lightColor, seed, baseFreq, extra }) {
+  const uid = 'm'+seed;
+  return `<svg viewBox="0 0 512 512" style="${pos};width:${size}px;height:${size}px;opacity:${opacity}" aria-hidden="true">
+    <defs>
+      <radialGradient id="${uid}g" cx="40%" cy="35%" r="75%">${grad}</radialGradient>
+      <radialGradient id="${uid}h" cx="50%" cy="50%" r="50%">
+        <stop offset="74%" stop-color="${lightColor}" stop-opacity="0"/>
+        <stop offset="90%" stop-color="${lightColor}" stop-opacity="0.14"/>
+        <stop offset="100%" stop-color="${lightColor}" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="${uid}t" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="${baseFreq}" numOctaves="5" seed="${seed}" result="n"/>
+        <feDiffuseLighting in="n" lighting-color="${lightColor}" surfaceScale="3.4" diffuseConstant="1.05" result="l">
+          <feDistantLight azimuth="228" elevation="56"/>
+        </feDiffuseLighting>
+        <feComposite in="l" in2="SourceAlpha" operator="in"/>
+      </filter>
+      <clipPath id="${uid}c"><circle cx="256" cy="256" r="206"/></clipPath>
+      <radialGradient id="${uid}s" cx="40%" cy="35%" r="80%">
+        <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#000" stop-opacity="0.78"/>
+      </radialGradient>
+    </defs>
+    <circle cx="256" cy="256" r="232" fill="url(#${uid}h)"/>
+    <circle cx="256" cy="256" r="206" fill="url(#${uid}g)"/>
+    <g clip-path="url(#${uid}c)">
+      <circle cx="256" cy="256" r="206" fill="#9aa3b5" filter="url(#${uid}t)" style="mix-blend-mode:soft-light"/>
+      <circle cx="256" cy="256" r="206" fill="#9aa3b5" filter="url(#${uid}t)" opacity="0.35" style="mix-blend-mode:overlay"/>
+      ${extra||''}
+      <circle cx="256" cy="256" r="206" fill="url(#${uid}s)"/>
+    </g>
+  </svg>`;
+}
+const MOTIFS = {
+  moon: () => sphereSVG({ size: 380, pos: 'top:5%;right:3%', opacity: 0.7,
+    lightColor: '#eef2fa', seed: 8, baseFreq: '0.014',
+    grad: `<stop offset="0%" stop-color="#ffffff"/><stop offset="48%" stop-color="#d6dce6"/><stop offset="82%" stop-color="#7e879b"/><stop offset="100%" stop-color="#20242f"/>` }),
+  mars: () => sphereSVG({ size: 380, pos: 'top:5%;right:3%', opacity: 0.72,
+    lightColor: '#ffd9bf', seed: 14, baseFreq: '0.016',
+    grad: `<stop offset="0%" stop-color="#f0a072"/><stop offset="50%" stop-color="#bd5530"/><stop offset="84%" stop-color="#7e2e16"/><stop offset="100%" stop-color="#1f0c06"/>`,
+    extra: `<ellipse cx="208" cy="70" rx="60" ry="20" fill="#f3efe9" opacity="0.55" filter="url(#m14t)"/><ellipse cx="208" cy="70" rx="60" ry="20" fill="#fff" opacity="0.18"/>` }),
+  falcon9: () => rocketSVG(false),
+  launch: () => rocketSVG(true),
+};
+function rocketSVG(withFlame) {
+  const pos = withFlame ? 'bottom:0;left:50%;transform:translateX(-50%)' : 'bottom:-2%;right:4%';
+  const opacity = withFlame ? 0.85 : 0.5;
+  const flame = withFlame ? `
+      <g filter="url(#blur)">
+        <path d="M150 470 Q176 600 176 660 Q176 600 202 470 Z" fill="#ff7a18" opacity="0.9"/>
+        <path d="M158 470 Q176 580 176 628 Q176 580 194 470 Z" fill="#ffd24d"/>
+        <path d="M165 470 Q176 545 176 580 Q176 545 187 470 Z" fill="#fff7e0"/>
+      </g>
+      <ellipse cx="176" cy="690" rx="120" ry="60" fill="#ff8a1e" opacity="0.12" filter="url(#blur)"/>` : '';
+  return `<svg viewBox="0 0 352 700" style="${pos};width:${withFlame?200:150}px;height:${withFlame?398:300}px;opacity:${opacity}" aria-hidden="true">
+    <defs>
+      <linearGradient id="rk" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#aeb6c4"/><stop offset="22%" stop-color="#f4f6fa"/>
+        <stop offset="55%" stop-color="#ffffff"/><stop offset="80%" stop-color="#cdd3de"/><stop offset="100%" stop-color="#8c93a3"/>
+      </linearGradient>
+      <linearGradient id="rkd" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#1a1d24"/><stop offset="50%" stop-color="#3a3f4a"/><stop offset="100%" stop-color="#14161b"/>
+      </linearGradient>
+      <filter id="blur" x="-60%" y="-30%" width="220%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+      <filter id="ds" x="-40%" y="-10%" width="180%" height="130%"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.5"/></filter>
+    </defs>
+    ${flame}
+    <g filter="url(#ds)">
+      <path d="M176 24 C150 60 132 110 132 168 L132 430 L220 430 L220 168 C220 110 202 60 176 24 Z" fill="url(#rk)"/>
+      <path d="M132 430 L132 470 C132 486 146 496 176 496 C206 496 220 486 220 470 L220 430 Z" fill="url(#rkd)"/>
+      <rect x="132" y="250" width="88" height="22" fill="#e31937"/>
+      <rect x="132" y="168" width="88" height="14" fill="#cfd5e0"/>
+      <circle cx="176" cy="120" r="11" fill="#11151f"/><circle cx="172" cy="116" r="3.5" fill="#7fa8d8" opacity="0.8"/>
+      <path d="M132 360 L96 452 L132 424 Z" fill="#b8bfcc"/><path d="M132 360 L96 452 L132 424 Z" fill="#000" opacity="0.18"/>
+      <path d="M220 360 L256 452 L220 424 Z" fill="#dde2ea"/>
+      <rect x="150" y="496" width="10" height="20" rx="3" fill="#23262e"/><rect x="170" y="496" width="10" height="20" rx="3" fill="#23262e"/><rect x="190" y="496" width="10" height="20" rx="3" fill="#23262e"/>
+    </g>
+  </svg>`;
+}
+function renderMotif(accent) {
+  const el = document.querySelector('.bg-motif'); if (!el) return;
+  const fn = MOTIFS[accent || (State.settings.accent||'cyan')];
+  el.innerHTML = fn ? fn() : '';
 }
 function renderThemeDropdown() {
   const dd = $('#themeDropdown'); if (!dd) return;
