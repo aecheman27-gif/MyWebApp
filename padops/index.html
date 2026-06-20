@@ -192,6 +192,9 @@ a { color: var(--neon-cyan); text-decoration: none; }
   outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(0,245,255,0.15);
 }
+.field-error { color: var(--neon-magenta); font-size: 12px; margin-top: 6px; }
+.editor.invalid, input.invalid, textarea.invalid {
+  border-color: var(--neon-magenta) !important; box-shadow: 0 0 0 1px var(--neon-magenta), var(--glow-magenta); }
 
 /* ============================================================================
    3. ANIMATED BACKGROUND (5-layer)
@@ -800,7 +803,7 @@ body.split-mode.detail-open main { width: 58%; }
       <button class="btn sm ghost" id="notepadBtn" title="Shift Notes (P)">📓 Shift Notes</button>
       <span class="spacer"></span>
       <span class="offline-badge">⚠ OFFLINE</span>
-      <div class="sync-status"><span id="lastSynced">Last synced: just now</span><button id="syncBtn">⟳ Sync</button></div>
+      <div class="sync-status"><span id="lastSynced" title="Local data only — no cross-device sync">Updated just now</span><button id="syncBtn" title="Reload local data and refresh the view">⟳ Refresh</button></div>
     </div>
   </header>
 
@@ -1361,7 +1364,7 @@ function renderUserPill() {
   $('#userName').textContent = activeUser || '—';
 }
 function updateSyncLabel() {
-  const el = $('#lastSynced'); if (el) el.textContent = 'Last synced: ' + relTime(State.lastSyncedAt);
+  const el = $('#lastSynced'); if (el) el.textContent = 'Updated ' + relTime(State.lastSyncedAt);
 }
 
 /* ============================================================================
@@ -2639,7 +2642,8 @@ function renderHandoff() {
         <button class="tb-btn" id="aiDraftBtn" ${State.settings.anthropicApiKey?'':'disabled title="Configure API key in Settings"'} style="width:auto;padding:0 8px">✨ Draft with AI</button>
       </div>
       <div class="editor" id="batonNote" contenteditable="true" style="min-height:120px"></div>
-      <div class="mt8"><button class="btn primary" id="submitHandoff" disabled>Submit Handoff</button></div>
+      <div id="batonError" class="field-error" style="display:none">⚠ Baton pass note required</div>
+      <div class="mt8"><button class="btn primary" id="submitHandoff">Submit Handoff</button></div>
     </div>
     <div class="panel">
       <h2>Handoff History <span class="muted tiny">(last 14 days)</span></h2>
@@ -2647,10 +2651,19 @@ function renderHandoff() {
     </div>`;
   const baton = $('#batonNote');
   const submit = $('#submitHandoff');
-  baton.addEventListener('input', ()=>{ submit.disabled = !baton.textContent.trim(); if(batonAiDraft){ batonAiDraft=false; } });
+  const batonError = $('#batonError');
+  const clearBatonError = () => { batonError.style.display='none'; baton.classList.remove('invalid'); };
+  baton.addEventListener('input', ()=>{ if(baton.textContent.trim()) clearBatonError(); if(batonAiDraft){ batonAiDraft=false; } });
   $$('[data-baton]').forEach(b=>b.onmousedown=(e)=>{ e.preventDefault(); document.execCommand(b.dataset.baton); });
   $('#aiDraftBtn')?.addEventListener('click', ()=>aiDraftBaton(baton, submit));
-  submit.onclick = ()=>submitHandoff(baton.innerHTML, incoming);
+  submit.onclick = ()=>{
+    if (!baton.textContent.trim()) {   // required — block with visible feedback, no success toast
+      batonError.style.display='block'; baton.classList.add('invalid'); baton.focus();
+      return;
+    }
+    clearBatonError();
+    submitHandoff(baton.innerHTML, incoming);
+  };
 }
 function handoffTaskRow(t) {
   return `<div class="log-line"><span class="status-badge" style="color:var(--col-${t.status.replace('in-','')})">${COL_LABEL[t.status]}</span>
@@ -3123,7 +3136,8 @@ function renderSettingsGeneral(c) {
     <div class="field-row"><div class="field"><label>Day shift start (24h)</label><input id="s_dayStart" value="${esc(s.shiftStartDay)}"></div><div class="field"><label>Night shift start (24h)</label><input id="s_nightStart" value="${esc(s.shiftStartNight)}"></div></div>
     </div>
     <div class="panel"><h2>API & Theme</h2>
-      <div class="field"><label>Anthropic API Key</label><div class="row"><input type="password" id="s_apiKey" placeholder="${s.anthropicApiKey?'•••• saved':'sk-ant-…'}" style="flex:1"><button class="btn sm" id="s_saveKey">Save</button><button class="btn sm ghost" id="s_clearKey">Clear</button></div></div>
+      <div class="field"><label>Anthropic API Key</label><div class="row"><input type="password" id="s_apiKey" placeholder="${s.anthropicApiKey?'•••• saved':'sk-ant-…'}" style="flex:1"><button class="btn sm" id="s_saveKey">Save</button><button class="btn sm ghost" id="s_clearKey">Clear</button></div>
+        <div class="tiny muted" style="margin-top:5px">🔒 Stored locally in this browser only (per-device, in localStorage). It is never sent anywhere except directly to Anthropic. Don't enter it on a shared machine.</div></div>
       <div class="field"><label>Theme</label><div class="seg">${['dark','light','system'].map(t=>`<button data-theme-opt="${t}" class="${s.theme===t?'active':''}">${t}</button>`).join('')}</div></div>
     </div>
     <div class="panel"><h2>Bookmarkable User URLs (§37)</h2>
@@ -3360,7 +3374,7 @@ function wireGlobalChrome() {
   $$('#navTabs button').forEach(b=>b.onclick=()=>navigate(b.dataset.route));
   $('#announceBtn').onclick = openAnnounceModal;
   $('#notepadBtn').onclick = openNotepad;
-  $('#syncBtn').onclick = ()=>{ State=loadAndMigrate(); rerenderAll(); updateSyncLabel(); toast('Synced','success'); };
+  $('#syncBtn').onclick = ()=>{ State=loadAndMigrate(); rerenderAll(); updateSyncLabel(); toast('Refreshed','success'); };
   $('#bellBtn').onclick = (e)=>{ e.stopPropagation(); const dd=$('#notifDropdown'); dd.classList.toggle('show'); if(dd.classList.contains('show')) renderNotifDropdown(); };
   $('#themeBtn').onclick = (e)=>{ e.stopPropagation(); const dd=$('#themeDropdown'); dd.classList.toggle('show'); if(dd.classList.contains('show')) renderThemeDropdown(); };
   $('#userPill').onclick = (e)=>{ e.stopPropagation(); const dd=$('#userDropdown'); dd.classList.toggle('show');
