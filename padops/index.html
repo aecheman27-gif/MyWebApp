@@ -444,7 +444,16 @@ main { flex: 1; overflow: hidden; position: relative; }
 .card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .card-tag { font-family: var(--font-mono); font-size: 9px; color: var(--text-secondary); background: rgba(255,255,255,0.04);
   padding: 1px 5px; border-radius: 2px; letter-spacing: 0.05em; }
-.card-cf { font-family: var(--font-mono); font-size: 9px; color: var(--neon-cyan); opacity: 0.8; }
+/* Card body rows — clear separation between priority/owner, fields, tags, footer */
+.card-line { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.card-line .card-assignee { margin-left: auto; }
+.card-fields { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 7px;
+  padding-top: 7px; border-top: 1px solid rgba(255,255,255,0.04); }
+.card-cf { font-family: var(--font-mono); font-size: 10px; }
+.card-cf .cf-k { color: var(--text-muted); }
+.card-cf .cf-v { color: var(--text-primary); }
+.card-tags-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 7px; }
+.card-foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .card-time { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); margin-left: auto; }
 .hold-reason { font-size: 11px; color: var(--col-hold); background: rgba(255,136,0,0.08);
   border-radius: 2px; padding: 3px 6px; margin-top: 6px; font-style: italic; }
@@ -1603,7 +1612,9 @@ function isStale(t) {
 }
 function cardHTML(t) {
   const cf = State.customFieldDefs.filter(f=>f.showOnCard && t.customFields[f.id]!=null && t.customFields[f.id]!=='')
-    .map(f => `<span class="card-cf">${esc(f.name)}: ${esc(t.customFields[f.id])}</span>`).join('');
+    .map(f => `<span class="card-cf"><span class="cf-k">${esc(f.name)}</span> <span class="cf-v">${esc(t.customFields[f.id])}</span></span>`).join('');
+  const estTag = t.estimatedHours ? `<span class="card-tag">~${t.estimatedHours}h</span>` : '';
+  const tagTags = (t.tags||[]).slice(0,3).map(tg=>`<span class="card-tag">#${esc(tg)}</span>`).join('');
   const open = t.columnHistory.find(h=>h.exitedAt===null);
   const timeIn = open ? COL_LABEL[t.status]+' '+fmtDuration(Date.now()-new Date(open.enteredAt).getTime()) : '';
   const blockedBy = (t.blockedBy||[]).map(id=>taskById(id)).filter(Boolean);
@@ -1623,17 +1634,15 @@ function cardHTML(t) {
     ${blockedBy.length && !blockerResolved.length ? `<span class="dep-tag">⛔ Blocked by: ${esc(blockedBy.map(b=>b.title).join(', '))}</span>`:''}
     ${blockerResolved.length ? `<span class="dep-tag resolved">⚑ Blocker resolved — ${esc(blockerResolved.map(b=>b.title).join(', '))}</span>`:''}
     ${blocking.length ? `<span class="dep-tag blocking">⛓ Blocking ${blocking.length} task${blocking.length>1?'s':''}</span>`:''}
-    <div class="card-meta">
+    <div class="card-line">
       <span class="prio-label p-${t.priority}" title="${t.priority} priority">${t.priority}</span>
-      <span class="assignee-chip ${!t.assignee?(t.type==='request'?'needs-owner':'unassigned'):''}" data-assignee="${t.id}">
+      <span class="assignee-chip card-assignee ${!t.assignee?(t.type==='request'?'needs-owner':'unassigned'):''}" data-assignee="${t.id}">
         ${t.assignee ? avatarHTML(t.assignee,20) : (t.type==='request'?'⊕ Needs owner':'Unassigned')}
       </span>
-      ${cf}
-      ${t.estimatedHours?`<span class="card-tag">~${t.estimatedHours}h</span>`:''}
-      ${(t.tags||[]).slice(0,2).map(tg=>`<span class="card-tag">#${esc(tg)}</span>`).join('')}
-      <span class="card-time">${timeIn}</span>
     </div>
-    <div class="card-meta">
+    ${cf?`<div class="card-fields">${cf}</div>`:''}
+    ${(estTag||tagTags)?`<div class="card-tags-row">${estTag}${tagTags}</div>`:''}
+    <div class="card-foot">
       <div class="card-badges">
         ${isStale(t)?'<span class="mini-badge stale">⚠ Stale</span>':''}
         ${ageBadge(t)}
@@ -1642,6 +1651,7 @@ function cardHTML(t) {
         ${(t.comments||[]).length?`<span class="mini-badge">💬 ${t.comments.length}</span>`:''}
         ${(t.attachments||[]).length?`<span class="mini-badge">📎 ${t.attachments.length}</span>`:''}
       </div>
+      <span class="card-time">${timeIn}</span>
     </div>
   </div>`;
 }
