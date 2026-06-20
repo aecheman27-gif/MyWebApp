@@ -3042,9 +3042,6 @@ function renderStats() {
   const words = {};
   tasks.filter(t=>t.holdReason).forEach(t=>t.holdReason.toLowerCase().split(/\W+/).filter(x=>x.length>3).forEach(x=>words[x]=(words[x]||0)+1));
   const topWords = Object.entries(words).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  // time tracking per person
-  const timeByPerson = {}; allMembers().forEach(m=>timeByPerson[m]=0);
-  tasks.forEach(t=>(t.actualSessions||[]).forEach(s=>{ if(t.assignee) timeByPerson[t.assignee]+=s.ms||0; }));
 
   w.innerHTML = `<h1>Shift Statistics</h1>
     <div class="sub">Date range:
@@ -3075,12 +3072,9 @@ function renderStats() {
     </div>
     <div class="panel"><h2>Hold Reason Frequency</h2>
       ${topWords.length?topWords.map(([w2,n])=>`<div class="stat-bar-row"><span class="lbl mono">${esc(w2)}</span><span class="mono sec">${'▮'.repeat(n)} ${n}</span></div>`).join(''):'<div class="muted">No hold reasons recorded</div>'}
-    </div>
-    <div class="panel"><h2>Time Tracked per Person</h2>
-      ${allMembers().map(m=>`<div class="stat-bar-row"><span class="lbl">${esc(m)}</span><span class="mono sec">${fmtDuration(timeByPerson[m])||'0m'}</span></div>`).join('')}
     </div>`;
   $('#statsRange').onchange=(e)=>{ statsRange=e.target.value; renderStats(); };
-  $('#statsJson').onclick=()=>downloadFile('stats.json', JSON.stringify({totalCompleted,avgCol,handoffs:handoffs.length,acked,topWords,timeByPerson},null,2),'application/json');
+  $('#statsJson').onclick=()=>downloadFile('stats.json', JSON.stringify({totalCompleted,avgCol,handoffs:handoffs.length,acked,topWords},null,2),'application/json');
   $('#statsCsv').onclick=()=>exportStatsCsv(tasks);
 }
 function ratioColor(n,total){ if(!total) return 'var(--text-muted)'; const r=n/total; return r>0.8?'var(--neon-green)':r>0.5?'var(--neon-yellow)':'var(--neon-magenta)'; }
