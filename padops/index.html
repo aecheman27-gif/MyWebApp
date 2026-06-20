@@ -153,6 +153,23 @@ html[data-accent="falcon9"] {
   --bg-void:#000000; --bg-surface:#0a0a0a; --bg-elevated:#151515; --bg-glass:rgba(10,10,10,0.74);
 }
 html[data-accent="falcon9"] #bg-canvas { background:radial-gradient(ellipse at 50% 50%, #1a0a0d 0%, #000000 70%); }
+
+/* Falcon Heavy — photographic background (drop padops/falcon-heavy.jpg into the repo).
+   Degrades to a dark + flame-orange look if the image is absent. */
+html[data-accent="falconheavy"] {
+  --neon-cyan:#ff9a3c; --text-neon:#ffc070;
+  --border-default:rgba(255,154,60,0.12); --border-active:rgba(255,154,60,0.42); --border-glow:rgba(255,154,60,0.6);
+  --glow-cyan-sm:0 0 8px rgba(255,154,60,0.5); --glow-cyan-md:0 0 22px rgba(255,154,60,0.3),0 0 44px rgba(255,120,0,0.14);
+  --bg-void:#070910; --bg-surface:rgba(10,12,20,0.88); --bg-elevated:rgba(15,18,28,0.96); --bg-glass:rgba(8,10,18,0.72);
+}
+html[data-accent="falconheavy"] #bg-canvas {
+  background:#070910 linear-gradient(rgba(5,7,14,0.70), rgba(5,7,14,0.86)) center/cover no-repeat fixed;
+  background-image:linear-gradient(rgba(5,7,14,0.70), rgba(5,7,14,0.86)), url('falcon-heavy.jpg');
+  background-size:cover; background-position:center; background-repeat:no-repeat; background-attachment:fixed;
+}
+html[data-accent="falconheavy"] .bg-grid { opacity:0.12; }
+html[data-accent="falconheavy"] .bg-scanline { display:none; }
+html[data-accent="falconheavy"] #starfield { opacity:0.35; }
 .color-swatch.sel { outline: 2px solid var(--text-primary); outline-offset: 1px; }
 
 /* ============================================================================
@@ -1448,7 +1465,7 @@ function renderThemeDropdown() {
   const dd = $('#themeDropdown'); if (!dd) return;
   const modes = [['system','System'],['dark','Dark'],['light','Light']];
   const accents = [['cyan','#00f5ff','Cyan'],['green','#00ff94','Green'],['amber','#ffaa00','Amber'],['magenta','#ff006e','Magenta'],['violet','#9b59ff','Violet']];
-  const themes = [['space','Space','#5b9dff'],['launch','Launch','#ff7a18'],['mars','Mars','#ff5733'],['moon','Moon','#aebfd6'],['falcon9','Falcon 9','#e31937']];
+  const themes = [['space','Space','#5b9dff'],['launch','Launch','#ff7a18'],['mars','Mars','#ff5733'],['moon','Moon','#aebfd6'],['falcon9','Falcon 9','#e31937'],['falconheavy','Falcon Heavy','#ff9a3c']];
   const curAccent = State.settings.accent || 'cyan';
   dd.innerHTML = `<div class="dropdown-head"><h3>Theme &amp; Color Scheme</h3></div>
     <div style="padding:10px 12px">
