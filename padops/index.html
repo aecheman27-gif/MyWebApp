@@ -3026,10 +3026,9 @@ function renderStats() {
   const w = $('#statsWrap');
   const start = rangeStart().getTime();
   const tasks = State.tasks.filter(t=>!t.archived);
-  // Panel 1: completed per person
-  const completed = {}; allMembers().forEach(m=>completed[m]=0);
-  tasks.filter(t=>t.status==='complete'&&t.completedAt&&new Date(t.completedAt).getTime()>=start).forEach(t=>{ if(t.assignee) completed[t.assignee]=(completed[t.assignee]||0)+1; });
-  const maxC = Math.max(1, ...Object.values(completed));
+  // Panel 1: total completed (team-wide, not per person — avoid a leaderboard)
+  const totalCompleted = tasks.filter(t=>t.status==='complete'&&t.completedAt&&new Date(t.completedAt).getTime()>=start).length;
+  const rangeLabel = { week:'this week', lastweek:'last week', '30':'in the last 30 days' }[statsRange] || 'this period';
   // Panel 2: avg time in column
   const colTimes = {}; COLUMNS.forEach(c=>colTimes[c.id]=[]);
   tasks.forEach(t=>t.columnHistory.forEach(h=>{ const end=h.exitedAt?new Date(h.exitedAt):new Date(); const dur=(end-new Date(h.enteredAt))/3600000; if(colTimes[h.column]) colTimes[h.column].push(dur); }));
@@ -3057,9 +3056,11 @@ function renderStats() {
       <button class="btn sm right" id="statsCsv">Export CSV</button>
       <button class="btn sm" id="statsJson">Export JSON</button>
     </div>
-    <div class="panel"><h2>Tasks Completed per Person</h2>
-      ${allMembers().map(m=>{ const c=AVATAR_COLORS[m]; return `<div class="stat-bar-row"><span class="lbl">${esc(m)}</span>
-        <svg height="20" width="100%"><rect x="0" y="2" width="${(completed[m]/maxC)*80}%" height="16" fill="${c.border}" rx="2"/><text x="${(completed[m]/maxC)*80+1}%" y="14" fill="var(--text-secondary)" font-size="11" font-family="monospace">${completed[m]}</text></svg></div>`; }).join('')}
+    <div class="panel"><h2>Tasks Completed</h2>
+      <div class="row" style="align-items:baseline;gap:12px">
+        <span class="stat-num">${totalCompleted}</span>
+        <span class="sec">task${totalCompleted===1?'':'s'} completed by the team ${rangeLabel}</span>
+      </div>
     </div>
     <div class="panel"><h2>Average Time-in-Column</h2>
       ${COLUMNS.map(c=>{ const v=avgCol[c.id]; const col=v>72?'var(--neon-magenta)':v>24?'var(--col-hold)':'var(--neon-cyan)'; return `<div class="stat-bar-row"><span class="lbl">${c.label}</span>
@@ -3079,7 +3080,7 @@ function renderStats() {
       ${allMembers().map(m=>`<div class="stat-bar-row"><span class="lbl">${esc(m)}</span><span class="mono sec">${fmtDuration(timeByPerson[m])||'0m'}</span></div>`).join('')}
     </div>`;
   $('#statsRange').onchange=(e)=>{ statsRange=e.target.value; renderStats(); };
-  $('#statsJson').onclick=()=>downloadFile('stats.json', JSON.stringify({completed,avgCol,handoffs:handoffs.length,acked,topWords,timeByPerson},null,2),'application/json');
+  $('#statsJson').onclick=()=>downloadFile('stats.json', JSON.stringify({totalCompleted,avgCol,handoffs:handoffs.length,acked,topWords,timeByPerson},null,2),'application/json');
   $('#statsCsv').onclick=()=>exportStatsCsv(tasks);
 }
 function ratioColor(n,total){ if(!total) return 'var(--text-muted)'; const r=n/total; return r>0.8?'var(--neon-green)':r>0.5?'var(--neon-yellow)':'var(--neon-magenta)'; }
