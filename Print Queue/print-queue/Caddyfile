@@ -1,0 +1,26 @@
+# Caddy serves plain HTTP inside the docker network. Cloudflare Tunnel
+# handles TLS termination at the edge, so there's no Let's Encrypt here.
+# Security headers and gzip still happen here.
+
+:80 {
+    encode zstd gzip
+
+    reverse_proxy web:8000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Host {host}
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "same-origin"
+        -Server
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}

@@ -1,0 +1,84 @@
+{# One card per printer; rendered server-side on first load, then the JS
+   updates fields in place from the SSE stream. #}
+<div class="printer-card" data-printer-slug="{{ printer.slug }}" data-printer-id="{{ printer.id }}">
+  <div class="printer-card-header">
+    <div>
+      <h3 class="printer-name">{{ printer.name }}</h3>
+      {% if printer.location %}
+        <p class="printer-location muted">{{ printer.location }}</p>
+      {% endif %}
+    </div>
+    <span class="printer-status status-pill" data-field="status">{{ (state.status.value if state else "OFFLINE") }}</span>
+  </div>
+
+  <div class="printer-progress">
+    <div class="progress-bar">
+      <div class="progress-fill" data-field="percent-fill" style="width: {{ '%.1f'|format(state.percent or 0) if state else 0 }}%;"></div>
+    </div>
+    <div class="progress-meta">
+      <span class="mono" data-field="percent">{{ '%.0f'|format(state.percent or 0) if state and state.percent is not none else '--' }}%</span>
+      <span class="muted" data-field="remaining">
+        {%- if state and state.remaining_minutes is not none -%}
+          {{ state.remaining_minutes }} min left
+        {%- else -%}
+          —
+        {%- endif -%}
+      </span>
+    </div>
+  </div>
+
+  <dl class="printer-stats">
+    <div>
+      <dt>File</dt>
+      <dd class="mono truncate" data-field="current_file" title="{{ state.current_file if state else '' }}">
+        {{ state.current_file or '—' if state else '—' }}
+      </dd>
+    </div>
+    <div>
+      <dt>Layer</dt>
+      <dd class="mono" data-field="layer-summary">
+        {%- if state and state.layer is not none and state.total_layers -%}
+          {{ state.layer }} / {{ state.total_layers }}
+        {%- else -%}
+          —
+        {%- endif -%}
+      </dd>
+    </div>
+    <div>
+      <dt>Nozzle</dt>
+      <dd class="mono" data-field="nozzle-summary">
+        {%- if state and state.nozzle_temp is not none -%}
+          {{ '%.0f'|format(state.nozzle_temp) }}° → {{ '%.0f'|format(state.nozzle_target or 0) }}°
+        {%- else -%}
+          —
+        {%- endif -%}
+      </dd>
+    </div>
+    <div>
+      <dt>Bed</dt>
+      <dd class="mono" data-field="bed-summary">
+        {%- if state and state.bed_temp is not none -%}
+          {{ '%.0f'|format(state.bed_temp) }}° → {{ '%.0f'|format(state.bed_target or 0) }}°
+        {%- else -%}
+          —
+        {%- endif -%}
+      </dd>
+    </div>
+    <div>
+      <dt>Wifi</dt>
+      <dd class="mono" data-field="wifi_signal">
+        {{ state.wifi_signal ~ ' dBm' if state and state.wifi_signal is not none else '—' }}
+      </dd>
+    </div>
+    <div>
+      <dt>Seen</dt>
+      <dd class="mono" data-field="last_seen_at" data-rel="true">
+        {{ state.last_seen_at.strftime('%H:%M:%S') if state and state.last_seen_at else '—' }}
+      </dd>
+    </div>
+  </dl>
+
+  {% if state and state.error_code %}
+    <div class="printer-error">Error code: <span class="mono">{{ state.error_code }}</span></div>
+  {% endif %}
+</div>

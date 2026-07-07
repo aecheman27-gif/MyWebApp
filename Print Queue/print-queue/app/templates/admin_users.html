@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Users — {{ site_name }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>User management</h1>
+  <p class="muted">Add, remove, and change roles. Deactivating prevents sign-in but preserves submission history.</p>
+</div>
+
+<div class="card">
+  <h2 class="card-title">Add a user</h2>
+  <form method="post" action="/admin/users" class="add-user-form">
+    <label>
+      Email
+      <input type="email" name="email" required placeholder="name@spacex.com" autocomplete="off">
+    </label>
+    <label>
+      Role
+      <select name="role">
+        {% for r in roles %}
+          <option value="{{ r.value }}">{{ r.value }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="primary">Add user</button>
+  </form>
+</div>
+
+<table class="queue-table users-table">
+  <thead>
+    <tr>
+      <th>Email</th>
+      <th>Role</th>
+      <th>Status</th>
+      <th>Last login</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+      <tr>
+        <td data-label="Email">{{ u.email }}</td>
+        <td data-label="Role">
+          <form method="post" action="/admin/users/{{ u.id }}/role" class="inline-form">
+            <select name="role" onchange="this.form.submit()" {% if u.id == user.id %}disabled title="Can't change your own role"{% endif %}>
+              {% for r in roles %}
+                <option value="{{ r.value }}" {{ 'selected' if r == u.role else '' }}>{{ r.value }}</option>
+              {% endfor %}
+            </select>
+            <noscript><button type="submit">Save</button></noscript>
+          </form>
+        </td>
+        <td data-label="Status">
+          {% if u.is_active %}
+            <span class="status-pill status-FINISHED">Active</span>
+          {% else %}
+            <span class="status-pill status-OFFLINE">Inactive</span>
+          {% endif %}
+        </td>
+        <td data-label="Last login" class="muted">
+          {{ u.last_login_at.strftime('%b %d, %H:%M') if u.last_login_at else '—' }}
+        </td>
+        <td data-label="" class="row-actions">
+          {% if u.id != user.id %}
+            <form method="post" action="/admin/users/{{ u.id }}/active" class="inline-form">
+              <input type="hidden" name="is_active" value="{{ 'false' if u.is_active else 'true' }}">
+              <button type="submit" class="link-button">
+                {{ 'Deactivate' if u.is_active else 'Reactivate' }}
+              </button>
+            </form>
+          {% else %}
+            <span class="muted">(you)</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

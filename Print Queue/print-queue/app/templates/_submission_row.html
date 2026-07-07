@@ -1,0 +1,20 @@
+{% set is_mine = (user.id == submission.submitter_id) %}
+<tr class="submission-row {{ 'mine' if is_mine else '' }}" id="row-{{ submission.id }}">
+  <td data-label="Status">
+    {% include "_status_badge.html" %}
+  </td>
+  <td data-label="Part">
+    <a href="/submissions/{{ submission.id }}" class="part-link">{{ submission.part_name }}</a>
+  </td>
+  <td class="muted" data-label="Submitter">{{ submission.submitter.email.split('@')[0] }}</td>
+  <td data-label="Priority">
+    <span class="priority priority-{{ submission.priority.value }}">{{ submission.priority.value }}</span>
+  </td>
+  <td class="muted mono" data-label="Material">{{ submission.material.value }}</td>
+  <td class="muted" data-label="Submitted">{{ submission.created_at.strftime('%b %d, %H:%M') }}</td>
+  {% if is_operator %}
+  <td class="row-actions" data-label="">
+    <a href="/submissions/{{ submission.id }}" class="link-button">Open</a>
+  </td>
+  {% endif %}
+</tr>

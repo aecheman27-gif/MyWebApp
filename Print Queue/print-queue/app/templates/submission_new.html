@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}New submission — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="card narrow-form">
+  <h1>New print submission</h1>
+  <p class="muted">
+    Upload a STEP, STP, or STL file. Max {{ max_upload_mb }} MB. The operator
+    will pick this up from the queue, slice, and print.
+  </p>
+
+  <form method="post" action="/submissions" enctype="multipart/form-data" class="stack">
+    <label>
+      Part name
+      <input type="text" name="part_name" required maxlength="200" autofocus>
+    </label>
+
+    <label>
+      Description
+      <textarea name="description" rows="3" maxlength="5000" placeholder="What is this for? Any tolerances or fit considerations?"></textarea>
+    </label>
+
+    <div class="row">
+      <label>
+        Material
+        <select name="material">
+          {% for m in materials %}
+            <option value="{{ m.value }}" {{ 'selected' if m.value == 'PLA' else '' }}>{{ m.value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        Priority
+        <select name="priority">
+          {% for p in priorities %}
+            <option value="{{ p.value }}" {{ 'selected' if p.value == 'NORMAL' else '' }}>{{ p.value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <label>
+      Notes for the operator
+      <textarea name="notes" rows="3" maxlength="5000" placeholder="Layer height, infill, color, quantity, anything else"></textarea>
+    </label>
+
+    <label>
+      STEP / STL file
+      <input type="file" name="file" accept=".step,.stp,.stl">
+    </label>
+
+    <div class="form-actions">
+      <a href="/" class="link-button">Cancel</a>
+      <button type="submit" class="primary">Submit to queue</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

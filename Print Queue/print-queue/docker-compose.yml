@@ -1,0 +1,93 @@
+# Deployment stack for the bridge laptop on guest WiFi, fronted by
+# Cloudflare Tunnel for public access. No inbound ports opened.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-printq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-printq}
+      POSTGRES_DB: ${POSTGRES_DB:-printq}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-printq}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-printq}:${POSTGRES_PASSWORD:-printq}@db:5432/${POSTGRES_DB:-printq}"
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - web
+    expose:
+      - "80"
+
+  bridge:
+    build:
+      context: .
+      dockerfile: bridge/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_TELEMETRY_URL: http://web:8000/internal/telemetry
+      BRIDGE_BUFFER_PATH: /data/buffer.sqlite3
+    volumes:
+      - bridge_buffer:/data
+    depends_on:
+      - web
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    env_file: .env
+    depends_on:
+      - caddy
+
+  backup:
+    image: alpine:3.20
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-printq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-printq}
+      POSTGRES_DB: ${POSTGRES_DB:-printq}
+    volumes:
+      - ./scripts/backup.sh:/backup.sh:ro
+      - uploads:/data/uploads:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache postgresql16-client aws-cli tzdata coreutils
+        echo "0 3 * * * /backup.sh >> /var/log/backup.log 2>&1" > /etc/crontabs/root
+        crond -f -l 2
+
+volumes:
+  postgres_data:
+  uploads:
+  bridge_buffer:

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}{{ submission.part_name }} — {{ site_name }}{% endblock %}
+{% block content %}
+<div class="detail-grid">
+  <div class="card">
+    <div class="detail-header">
+      <div>
+        <h1>{{ submission.part_name }}</h1>
+        <p class="muted">
+          Submitted by {{ submission.submitter.email }} ·
+          {{ submission.created_at.strftime('%b %d, %Y at %H:%M') }}
+        </p>
+      </div>
+      <div>
+        {% include "_status_badge.html" %}
+      </div>
+    </div>
+
+    <dl class="kv">
+      <dt>Priority</dt>
+      <dd><span class="priority priority-{{ submission.priority.value }}">{{ submission.priority.value }}</span></dd>
+
+      <dt>Material</dt>
+      <dd class="mono">{{ submission.material.value }}</dd>
+
+      {% if submission.description %}
+      <dt>Description</dt>
+      <dd>{{ submission.description }}</dd>
+      {% endif %}
+
+      {% if submission.notes %}
+      <dt>Notes</dt>
+      <dd>{{ submission.notes }}</dd>
+      {% endif %}
+
+      {% if submission.file %}
+      <dt>File</dt>
+      <dd>
+        <span class="mono">{{ submission.file.original_filename }}</span>
+        <span class="muted">({{ submission.file.size_human }})</span>
+        {% if can_download %}
+        · <a href="/submissions/{{ submission.id }}/download">Download</a>
+        {% endif %}
+      </dd>
+      {% endif %}
+    </dl>
+
+    <div class="card filename-hint">
+      <p class="muted small">Operator: when you slice this in Bambu Studio, save the file as:</p>
+      <code class="copy-target mono">{{ submission.filename_hint }}</code>
+      <p class="muted small">
+        Starting the file name with <code class="mono">sub-{{ submission.id.hex[:8] }}-</code>
+        lets the system auto-bind the print to this submission once M5 ships.
+      </p>
+    </div>
+  </div>
+
+  <div class="card sidebar">
+    {% if can_change_status %}
+    <h2 class="small-heading">Set status</h2>
+    <form method="post" action="/submissions/{{ submission.id }}/status" class="status-buttons">
+      {% for s in all_statuses %}
+        <button
+          type="submit"
+          name="to_status"
+          value="{{ s.value }}"
+          class="status-badge status-{{ s.value }} {{ 'current' if s.value == submission.status.value else '' }}"
+          {{ 'disabled' if s.value == submission.status.value else '' }}
+        >{{ s.value }}</button>
+      {% endfor %}
+    </form>
+    {% endif %}
+
+    {% if can_edit or can_delete %}
+    <h2 class="small-heading">Actions</h2>
+    <div class="action-buttons">
+      {% if can_edit %}
+        <a href="/submissions/{{ submission.id }}#edit" class="link-button">Edit</a>
+      {% endif %}
+      {% if can_delete %}
+        <form method="post" action="/submissions/{{ submission.id }}/delete" onsubmit="return confirm('Delete this submission? This cannot be undone.');" style="display:inline">
+          <button type="submit" class="link-button danger">Delete</button>
+        </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if can_edit %}
+<div class="card" id="edit">
+  <h2>Edit submission</h2>
+  <form method="post" action="/submissions/{{ submission.id }}/edit" class="stack">
+    <label>
+      Part name
+      <input type="text" name="part_name" required maxlength="200" value="{{ submission.part_name }}">
+    </label>
+
+    <label>
+      Description
+      <textarea name="description" rows="3" maxlength="5000">{{ submission.description or "" }}</textarea>
+    </label>
+
+    <div class="row">
+      <label>
+        Material
+        <select name="material">
+          {% for m in materials %}
+            <option value="{{ m.value }}" {{ 'selected' if m == submission.material else '' }}>{{ m.value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        Priority
+        <select name="priority">
+          {% for p in priorities %}
+            <option value="{{ p.value }}" {{ 'selected' if p == submission.priority else '' }}>{{ p.value }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+
+    <label>
+      Notes
+      <textarea name="notes" rows="3" maxlength="5000">{{ submission.notes or "" }}</textarea>
+    </label>
+
+    <div class="form-actions">
+      <a href="/submissions/{{ submission.id }}" class="link-button">Cancel</a>
+      <button type="submit" class="primary">Save changes</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<section class="comments-section" id="comments">
+  <h2>Comments</h2>
+
+  {% if comments %}
+    <ol class="comment-thread">
+      {% for c in comments %}
+        <li class="comment">
+          <header class="comment-meta">
+            <span class="comment-author">{{ c.author_email_at_write.split('@')[0] }}</span>
+            <time class="muted" datetime="{{ c.created_at.isoformat() }}">
+              {{ c.created_at.strftime('%b %d, %Y · %H:%M') }}
+            </time>
+          </header>
+          <div class="comment-body">{{ c.body|e|replace('\n', '<br>'|safe) }}</div>
+        </li>
+      {% endfor %}
+    </ol>
+  {% else %}
+    <p class="muted">No comments yet.</p>
+  {% endif %}
+
+  <form method="post" action="/submissions/{{ submission.id }}/comments" class="comment-form card">
+    <label class="visually-hidden" for="comment-body">Comment</label>
+    <textarea
+      id="comment-body"
+      name="body"
+      rows="3"
+      maxlength="2000"
+      placeholder="Add a comment…"
+      required
+    ></textarea>
+    <div class="form-actions">
+      <button type="submit" class="primary">Post comment</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

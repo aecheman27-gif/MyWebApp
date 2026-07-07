@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Stats — {{ site_name }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Stats</h1>
+  <p class="muted">{{ stats.range_start.strftime('%b %d, %Y') }} — {{ stats.range_end.strftime('%b %d, %Y') }}</p>
+</div>
+
+<form method="get" action="/admin/stats" class="stats-range-form">
+  <label>
+    From
+    <input type="date" name="start" value="{{ start_iso }}">
+  </label>
+  <label>
+    To
+    <input type="date" name="end" value="{{ end_iso }}">
+  </label>
+  <button type="submit" class="primary">Update</button>
+  <a class="link-button" href="/admin/stats/export.csv?start={{ start_iso }}&end={{ end_iso }}">Download CSV</a>
+</form>
+
+<section class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Submissions</div>
+    <div class="stat-value">{{ stats.submissions_total }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Completed</div>
+    <div class="stat-value">{{ stats.completed_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Failed</div>
+    <div class="stat-value">{{ stats.failed_count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Failure rate</div>
+    <div class="stat-value">{{ '%.1f'|format(stats.failure_rate_pct) }}%</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Total print time</div>
+    <div class="stat-value">{{ format_minutes(stats.total_print_minutes) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Avg print time</div>
+    <div class="stat-value">{{ format_minutes(stats.avg_print_minutes) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Longest print</div>
+    <div class="stat-value">{{ format_minutes(stats.longest_print_minutes) }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Cancelled</div>
+    <div class="stat-value">{{ stats.cancelled_count }}</div>
+  </div>
+</section>
+
+<section class="stats-breakdowns">
+  <div class="card">
+    <h3 class="card-title">By status</h3>
+    <ul class="kv-list">
+      {% for status, count in stats.by_status.items() %}
+        <li><span>{{ status }}</span><strong>{{ count }}</strong></li>
+      {% else %}
+        <li class="muted">No data.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title">By material</h3>
+    <ul class="kv-list">
+      {% for material, count in stats.by_material.items() %}
+        <li><span>{{ material }}</span><strong>{{ count }}</strong></li>
+      {% else %}
+        <li class="muted">No data.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title">By submitter</h3>
+    <ul class="kv-list">
+      {% for submitter, count in stats.by_submitter.items() %}
+        <li><span>{{ submitter }}</span><strong>{{ count }}</strong></li>
+      {% else %}
+        <li class="muted">No data.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title">By printer</h3>
+    <ul class="kv-list">
+      {% for printer, count in stats.by_printer.items() %}
+        <li><span>{{ printer }}</span><strong>{{ count }}</strong></li>
+      {% else %}
+        <li class="muted">No active prints in range.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a href="/" class="site-title">{{ site_name }}</a>
+    {% if user %}
+      <nav class="site-nav">
+        <a href="/" class="link-button">Queue</a>
+        <a href="/submissions/new" class="link-button">+ New</a>
+        {% if user.role.value == 'operator' %}
+          <a href="/admin/stats" class="link-button">Stats</a>
+          <a href="/admin/users" class="link-button">Users</a>
+        {% endif %}
+        <span class="user-email">{{ user.email }}</span>
+        <span class="user-role role-{{ user.role.value }}">{{ user.role.value }}</span>
+        <form method="post" action="/auth/logout" class="logout-form">
+          <button type="submit" class="link-button">Sign out</button>
+        </form>
+      </nav>
+    {% endif %}
+  </header>
+
+  <main class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

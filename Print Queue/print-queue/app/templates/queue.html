@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Queue — {{ site_name }}{% endblock %}
+{% block content %}
+
+{% if printer_states %}
+<section class="printer-strip">
+  {% for printer, state in printer_states %}
+    {% include "_printer_widget.html" %}
+  {% endfor %}
+</section>
+<script src="/static/printer_stream.js" defer></script>
+{% endif %}
+
+<div class="queue-header">
+  <div>
+    <h1>Print Queue</h1>
+    <p class="muted">{{ submissions|length }} submission{{ "" if submissions|length == 1 else "s" }} shown</p>
+  </div>
+  <a href="/submissions/new" class="button primary">+ New submission</a>
+</div>
+
+<form method="get" action="/" class="queue-controls">
+  <div class="filter-tabs">
+    <a href="/?filter=mine" class="tab {{ 'active' if active_filter == 'mine' else '' }}">Mine</a>
+    <a href="/?filter=active" class="tab {{ 'active' if active_filter == 'active' else '' }}">Active</a>
+    <a href="/?filter=in_progress" class="tab {{ 'active' if active_filter == 'in_progress' else '' }}">In progress</a>
+    <a href="/?filter=completed" class="tab {{ 'active' if active_filter == 'completed' else '' }}">Completed</a>
+    <a href="/?filter=all" class="tab {{ 'active' if active_filter == 'all' else '' }}">All</a>
+  </div>
+  <div class="search-box">
+    <input type="hidden" name="filter" value="{{ active_filter }}">
+    <input type="search" name="search" placeholder="Search part name, description, notes…" value="{{ search }}" autocomplete="off">
+    {% if search %}<a href="/?filter={{ active_filter }}" class="muted clear-search">clear</a>{% endif %}
+  </div>
+</form>
+
+{% if submissions %}
+<table class="queue-table">
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Part</th>
+      <th>Submitter</th>
+      <th>Priority</th>
+      <th>Material</th>
+      <th>Submitted</th>
+      {% if is_operator %}<th></th>{% endif %}
+    </tr>
+  </thead>
+  <tbody>
+    {% for submission in submissions %}
+      {% include "_submission_row.html" %}
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state card">
+  <p class="muted">No submissions match this view.</p>
+  {% if active_filter != "all" %}
+    <p><a href="/?filter=all">View all submissions</a></p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
